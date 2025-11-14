@@ -1,4 +1,18 @@
-algorithm: logic
-environment: seaquest
-rules: default
-update_steps: 100
+# For a detailed description of each parameter, please refer to the documentation or train.py
+algorithm: logic # default : none, set to "ppo" for neural agent or "logic" for logic agent
+environment: getout # default : none
+rules: getout_no_search_50 # default : "default"
+device: cpu # default : "cpu"
+total_steps: 10000 # default : 800000
+max_ep_len: 500 # default : 500
+update_steps: 1000 # default : none
+epochs: 20 # default : 20
+eps_clip: 0.2 # default : 0.2
+gamma: 0.99 # default : 0.99
+optimizer: Adam # default : "Adam"
+lr_actor: 0.001 # default : 0.001
+lr_critic: 0.0003 # default : 0.0003
+epsilon_fn: exp_decay # default : "exp_decay"
+recover: False # default : False
+save_steps: 2000 # default : 250000
+stats_steps: 2000 # default : 2000

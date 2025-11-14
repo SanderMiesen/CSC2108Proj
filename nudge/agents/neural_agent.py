@@ -18,7 +18,7 @@ class ActorCritic(nn.Module):
         self.rng = random.Random() if rng is None else rng
         self.env = env
 
-        mlp_module_path = f"../envs/{self.env.name}/mlp.py"
+        mlp_module_path = f"in/envs/{self.env.name}/mlp.py"
         module = load_module(mlp_module_path)
         self.actor = module.MLP(has_softmax=True)
         self.critic = module.MLP(has_softmax=False, out_size=1)
@@ -31,7 +31,6 @@ class ActorCritic(nn.Module):
         raise NotImplementedError
 
     def act(self, state, epsilon=0.0):
-
         action_probs = self.actor(state)
 
         # e-greedy
@@ -77,9 +76,10 @@ class NeuralPPO:
         self.MseLoss = nn.MSELoss()
 
     def select_action(self, state, epsilon=0.0):
+        _, neural_state = state
         # select random action with epsilon probability and policy probability with 1-epsilon
         with torch.no_grad():
-            # state = torch.FloatTensor(state).to(device)
+            state = torch.tensor(neural_state, dtype=torch.float32).to(self.device).flatten() # flatten the state to feed into policy
             action, action_logprob = self.policy_old.act(state, epsilon=epsilon)
 
         self.buffer.states.append(state)

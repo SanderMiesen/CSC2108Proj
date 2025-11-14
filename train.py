@@ -10,9 +10,13 @@ from typing import Callable
 import numpy as np
 import yaml
 from rtpt import RTPT
+import torch
 from torch.optim import Optimizer, Adam
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+
+# Add parent directory to path to allow imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nudge.agents.logic_agent import LogicPPO
 from nudge.agents.neural_agent import NeuralPPO
@@ -240,6 +244,21 @@ if __name__ == "__main__":
     with open(config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.Loader)
         
+    # Map string names to actual functions
+    ## Epsilon function
+    epsilon_fn_map = {
+    "exp_decay": exp_decay,
+    ### Add other functions here as needed
+    }
+    if "epsilon_fn" in config and config["epsilon_fn"] in epsilon_fn_map:
+        config["epsilon_fn"] = epsilon_fn_map[config["epsilon_fn"]]
+    ## Optimizer
+    optimizer_map = {
+        "Adam": Adam,
+        ### Add other optimizers here as needed
+    }
+    if "optimizer" in config and config["optimizer"] in optimizer_map:
+        config["optimizer"] = optimizer_map[config["optimizer"]]
     
     if args.game is not None:
         config["environment"] = args.game

@@ -1,13 +1,19 @@
 from enum import Enum
 from typing import Sequence
 
-from nudge.env import NudgeBaseEnv
+
 import numpy as np
 import gymnasium
-import gym3
 from gymnasium.envs.registration import register
-from nudge.utils import simulate_prob
+import sys
+import os.path as op
 import torch
+from nudge.utils import simulate_prob
+from nudge.env import NudgeBaseEnv
+
+# Change directory so we can import from env_src
+sys.path.append(op.abspath(op.join(op.dirname(__file__), "..", "..", "..", "env_src")))
+from getout.getout.paramLevelGenerator import ParameterizedLevelGenerator
 
 
 class NudgeEnv(NudgeBaseEnv):
@@ -27,51 +33,89 @@ class NudgeEnv(NudgeBaseEnv):
         self.noise = noise
         register(id="getout",
                  entry_point="env_src.getout.getout.getout:Getout")
-        self.env = gymnasium.make("getout")  # FIXME
-        # self.env = gym3.make("getout")  # FIXME
+        getout_env = gymnasium.make("getout").unwrapped 
+        level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
+        level_generator.generate(getout_env, seed=np.random.randint(0, 10000))
+        getout_env.render()
+        self.env = getout_env
 
     def reset(self):
-        state = self.env.reset()
-        return self.convert_state(state)
+        # Call reset of the getout env
+        _, _ = self.env.reset()
+        # Regenerate a new level
+        level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
+        level_generator.generate(self.env, seed=np.random.randint(0, 10000))
+        self.env.render()
+        # Get new observation
+        obs = self.env.get_obs()
+
+        return self.convert_state(obs)
 
     def step(self, action, is_mapped: bool = False):
-        state, reward, done, _, _ = self.env.step(action)
-        return self.convert_state(state), reward, done
+        """
+        Step the environment with the given action.
+        If is_mapped is False, the action will be mapped from model action space to env action space.
+        Returns (logic_state, neural_state), reward, done, where done is True if episode has ended (truncated or terminated).
+        """
+        obs, reward, terminated, truncated, _ = self.env.step(action)
+        return self.convert_state(obs), reward, terminated or truncated
+    
+    def extract_state(self, observation):
+        repr = self.env.level.get_representation()
+        repr["reward"] = observation["reward"]
+        repr["score"] = observation["score"]
 
-    def extract_logic_state(self, raw_state):
+        for entity in repr["entities"]:
+            # replace all enums (e.g. EntityID) with int values
+            for i, v in enumerate(entity):
+                if isinstance(v, Enum):
+                    entity[i] = v.value
+                if isinstance(v, bool):
+                    entity[i] = int(v)
+
+        return repr
+
+    def extract_logic_state(self, observation):
+        """
+        Extracts the logic state from the raw environment observation.
+
+        Args:
+            observation: The raw observation from the environment. It's a dictionary containing the level representation.
+
+        Returns:
+            A numpy array representing the logic state.
+        """
         n_features = 6
         if self.plusplus:
             n_objects = 8
         else:
             n_objects = 4
-
-        representation = raw_state.level.get_representation()
         logic_state = np.zeros((n_objects, n_features))
-        for entity in representation["entities"]:
-            if entity[0].name == 'PLAYER':
+        for key, value in observation.items():
+            if key == 'player':
                 logic_state[0][0] = 1
-                logic_state[0][-2:] = entity[1:3]
-            elif entity[0].name == 'KEY':
+                logic_state[0][-2:] = value
+            elif key == 'key':
                 logic_state[1][1] = 1
-                logic_state[1][-2:] = entity[1:3]
-            elif entity[0].name == 'DOOR':
+                logic_state[1][-2:] = value
+            elif key == 'door':
                 logic_state[2][2] = 1
-                logic_state[2][-2:] = entity[1:3]
-            elif entity[0].name == 'GROUND_ENEMY':
+                logic_state[2][-2:] = value
+            elif key == 'ground_enemy':
                 logic_state[3][3] = 1
-                logic_state[3][-2:] = entity[1:3]
-            elif entity[0].name == 'GROUND_ENEMY2':
+                logic_state[3][-2:] = value
+            elif key == 'ground_enemy2':
                 logic_state[4][3] = 1
-                logic_state[4][-2:] = entity[1:3]
-            elif entity[0].name == 'GROUND_ENEMY3':
+                logic_state[4][-2:] = value
+            elif key == 'ground_enemy3':
                 logic_state[5][3] = 1
-                logic_state[5][-2:] = entity[1:3]
-            elif entity[0].name == 'BUZZSAW1':
+                logic_state[5][-2:] = value
+            elif key == 'buzzsaw1':
                 logic_state[6][3] = 1
-                logic_state[6][-2:] = entity[1:3]
-            elif entity[0].name == 'BUZZSAW2':
+                logic_state[6][-2:] = value
+            elif key == 'buzzsaw2':
                 logic_state[7][3] = 1
-                logic_state[7][-2:] = entity[1:3]
+                logic_state[7][-2:] = value
 
         if self.noise:
             if sum(logic_state[:, 1]) == 0:
@@ -82,12 +126,12 @@ class NudgeEnv(NudgeBaseEnv):
 
         return logic_state
 
-    def extract_neural_state(self, raw_state):
-        model_input = sample_to_model_input((extract_state(raw_state), []))
-        model_input = collate([model_input])
-        state = model_input['state']
-        state = torch.cat([state['base'], state['entities']], dim=1)
-        return state
+    def extract_neural_state(self, observation):
+        model_input = sample_to_model_input((self.extract_state(observation), []))
+        model_input = collate([model_input], to_cuda=False, double_to_float=True)
+        neural_state = model_input['state']
+        neural_state = torch.cat([neural_state['base'], neural_state['entities']], dim=1)
+        return neural_state
 
     def close(self):
         self.env.close()
@@ -114,22 +158,6 @@ def collate(samples, to_cuda=True, double_to_float=True):
     if to_cuda:
         samples = for_each_tensor(samples, lambda tensor: tensor.cuda())
     return samples
-
-
-def extract_state(coin_jump):
-    repr = coin_jump.level.get_representation()
-    repr["reward"] = coin_jump.level.reward
-    repr["score"] = coin_jump.score
-
-    for entity in repr["entities"]:
-        # replace all enums (e.g. EntityID) with int values
-        for i, v in enumerate(entity):
-            if isinstance(v, Enum):
-                entity[i] = v.value
-            if isinstance(v, bool):
-                entity[i] = int(v)
-
-    return repr
 
 
 def sample_to_model_input(sample, no_dict=False, include_score=False):

@@ -30,8 +30,8 @@ class NudgeBaseEnv(ABC):
         """Turns the raw state representation into neural representation."""
         raise NotImplementedError
 
-    def convert_state(self, state) -> (torch.tensor, torch.tensor):
-        return self.extract_logic_state(state), self.extract_neural_state(state)
+    def convert_state(self, obs) -> (torch.tensor, torch.tensor):
+        return self.extract_logic_state(obs), self.extract_neural_state(obs)
 
     def map_action(self, model_action) -> int:
         """Converts a model action to the corresponding env action."""

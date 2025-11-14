@@ -71,21 +71,43 @@ class Player(Entity):
             self.action = action
 
     def step(self):
+        """
+        Makes player stap according to its current action.
+
+        For the getout environment, possible actions are:
+        - for the neural agent : 0: noop, 1: left, 2: right, 3: up, 4:down
+        - for the logic agent : combinations of 'jump', 'left', 'right', 'down', 'noop'
+        """
         self.ax = 0
         self.ay = 0
         self.use_support = True
 
-        if GetoutActions.MOVE_LEFT in self.action:
+        if type(self.action) is str:
+            actions = []
+            if "right" in self.action:
+                actions.append(GetoutActions.MOVE_RIGHT.value)
+            elif "left" in self.action:
+                actions.append(GetoutActions.MOVE_LEFT.value)
+            elif "jump" in self.action:
+                actions.append(GetoutActions.MOVE_UP.value)
+            elif "down" in self.action:
+                actions.append(GetoutActions.MOVE_DOWN.value)
+            else:
+                raise ValueError(f"Invalid action string '{self.action}' provided.")
+        else:
+            actions = self.action
+
+        if GetoutActions.MOVE_LEFT.value in actions:
             self.ax -= self.move_speed
-        if GetoutActions.MOVE_RIGHT in self.action:
+        if GetoutActions.MOVE_RIGHT.value in actions:
             self.ax += self.move_speed
-        if GetoutActions.MOVE_UP in self.action:
+        if GetoutActions.MOVE_UP.value in actions:
             if self.floating or self.flying:
                 self.ay += self.move_speed
             else:
                 self.ay += self.jump_strength
         else:
-            if GetoutActions.MOVE_DOWN in self.action:
+            if GetoutActions.MOVE_DOWN.value in actions:
                 self.use_support = False
                 if self.floating or self.flying:
                     self.ay -= self.move_speed

@@ -100,7 +100,6 @@ class LogicPPO:
         self.buffer.actions.append(action)
         action_logprob = torch.squeeze(action_logprob)
         self.buffer.logprobs.append(action_logprob)
-
         predicate = self.prednames[action.item()]
         return predicate
 

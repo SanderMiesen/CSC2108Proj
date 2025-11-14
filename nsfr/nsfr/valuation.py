@@ -62,10 +62,14 @@ class ValuationModule(nn.Module, ABC):
             Returns:
                 A batch of the probabilities of the target atom.
         """
+        if atom.pred.name == 'type':
+            name_to_search = 'obj_type'
+        else:
+            name_to_search = atom.pred.name
         try:
-            val_fn = self.val_fns[atom.pred.name]
+            val_fn = self.val_fns[name_to_search]
         except KeyError as e:
-            raise NotImplementedError(f"Missing implementation for valuation function '{atom.pred.name}'.")
+            raise NotImplementedError(f"Missing implementation for valuation function '{name_to_search}'.")
         # term: logical term
         # args: the vectorized input evaluated by the value function
         args = [self.ground_to_tensor(term, zs) for term in atom.terms]
