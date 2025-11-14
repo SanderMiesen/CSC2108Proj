@@ -9,7 +9,13 @@ This is the implementation of **Neurally gUided Differentiable loGic policiEs (N
     ```bash
     pip install -r requirements.txt
     ```
-2. On project level, simply run `python train.py` to start a new training run.
+2. Install the nsfr submodule with:
+    ```bash
+    cd nsfr
+    pip install -e .
+    ```
+3. Change the run parameters in the `in/config/default.yaml file`, i.e. set `algorithm: neural` to train the neural agent and `algorithm: logic` to train the logic agent. The other params are explained in the `train.py` file.
+4. On project level, run `python train.py` to start a new training run.
 
 ## How to Use
 
