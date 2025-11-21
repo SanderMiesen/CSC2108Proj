@@ -36,8 +36,10 @@ class Getout(gym.Env):
 
         self.zoom = 42 - width//2
 
-        if resource_path is None:
-            resource_path = pathlib.Path(__file__).joinpath('../../assets/kenney/')
+        # if resource_path is None:
+        #     resource_path = pathlib.Path(__file__).joinpath('../../assets/kenney/')
+        base = pathlib.Path(__file__).resolve().parent.parent  # env_src/getout
+        resource_path = base / 'assets' / 'kenney'
         self.resource_loader = ResourceLoader(path=resource_path, sprite_size=self.zoom,
                                               no_loading=not render) if render else None
 
