@@ -34,6 +34,10 @@ class ImageViewer(object):
         self.KEY_MAP = {
             self.pyglet.window.key.ENTER: ord('\r'),
             self.pyglet.window.key.SPACE: ord(' '),
+            self.pyglet.window.key.W: ord('W'),
+            self.pyglet.window.key.A: ord('A'),
+            self.pyglet.window.key.S: ord('S'),
+            self.pyglet.window.key.D: ord('D'),
         }
         self.caption = caption
         self.height = height
@@ -72,7 +76,7 @@ class ImageViewer(object):
 
         """
         # remap the key to the expected domain
-        symbol = self.KEY_MAP.get(symbol, symbol)
+        # symbol = self.KEY_MAP.get(symbol, symbol)
         # check if the symbol is the escape key
         if symbol == self.pyglet.window.key.ESCAPE:
             self._is_escape_pressed = is_press

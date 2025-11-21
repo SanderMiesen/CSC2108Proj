@@ -4,10 +4,15 @@ import time
 import numpy as np
 from imageviewer import ImageViewer
 
-from nudge.environments.getout.getout.getout.paramLevelGenerator import ParameterizedLevelGenerator
-from nudge.environments.getout.getout.getout.getout import Getout
+import os
+import sys
+# Set up path for importing getout
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_DIR)
 
-from nudge.environments.getout.getout.getout.actions import GetoutActions
+from env_src.getout.getout.paramLevelGenerator import ParameterizedLevelGenerator
+from  env_src.getout.getout.getout import Getout
+from  env_src.getout.getout.actions import GetoutActions
 
 KEY_SPACE = 32
 #KEY_SPACE = 32
@@ -23,7 +28,7 @@ def setup_image_viewer(getout):
         getout.camera.height,
         getout.camera.width,
         monitor_keyboard=True,
-        #relevant_keys=set('W','A','S','D','SPACE')
+        relevant_keys=set([KEY_w,KEY_a,KEY_s,KEY_d,KEY_SPACE, KEY_r])
     )
     return viewer
 
@@ -64,13 +69,13 @@ def run():
             coin_jump = create_getout_instance()
         else:
             if KEY_a in viewer.pressed_keys:
-                action.append(GetoutActions.MOVE_LEFT)
+                action.append(GetoutActions.MOVE_LEFT.value)
             if KEY_d in viewer.pressed_keys:
-                action.append(GetoutActions.MOVE_RIGHT)
+                action.append(GetoutActions.MOVE_RIGHT.value)
             if (KEY_SPACE in viewer.pressed_keys) or (KEY_w in viewer.pressed_keys):
-                action.append(GetoutActions.MOVE_UP)
+                action.append(GetoutActions.MOVE_UP.value)
             if KEY_s in viewer.pressed_keys:
-                action.append(GetoutActions.MOVE_DOWN)
+                action.append(GetoutActions.MOVE_DOWN.value)
 
         reward = coin_jump.step(action)
         score = coin_jump.get_score()
