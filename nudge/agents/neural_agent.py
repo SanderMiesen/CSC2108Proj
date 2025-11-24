@@ -64,13 +64,13 @@ class NeuralPPO:
         self.eps_clip = eps_clip
         self.epochs = epochs
         self.buffer = RolloutBuffer()
-        self.policy = ActorCritic(env, device=device)
+        self.policy = ActorCritic(env, device=device).to(self.device)
         self.optimizer = optimizer([
             {'params': self.policy.actor.parameters(), 'lr': lr_actor},
             {'params': self.policy.critic.parameters(), 'lr': lr_critic}
         ])
 
-        self.policy_old = ActorCritic(env, device=device)
+        self.policy_old = ActorCritic(env, device=device).to(self.device)
         self.policy_old.load_state_dict(self.policy.state_dict())
 
         self.MseLoss = nn.MSELoss()
