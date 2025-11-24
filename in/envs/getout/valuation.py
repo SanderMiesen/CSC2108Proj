@@ -37,7 +37,7 @@ def on_right(z_1, z_2):
 
 
 def have_key(z):
-    has_key = torch.ones(z.size(dim=0))
+    has_key = torch.ones(z.size(dim=0),device=z.device)
     c = torch.sum(z[:, :, 1], dim=1)
     result = has_key[:] - c[:]
 
