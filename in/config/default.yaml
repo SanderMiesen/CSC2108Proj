@@ -3,7 +3,7 @@ algorithm: logic # default : none, set to "ppo" for neural agent or "logic" for 
 environment: getout # default : none
 rules: getout_no_search_50 # default : "default"
 device: cpu # default : "cpu"
-total_steps: 10000 # default : 800000
+total_steps: 800000 # 10000 # default : 800000
 max_ep_len: 500 # default : 500
 update_steps: 1000 # default : none
 epochs: 20 # default : 20

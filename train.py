@@ -81,6 +81,10 @@ def main(algorithm: str,
     """
 
     make_deterministic(seed)
+    
+    device = torch.device("mps") if (torch.backends.mps.is_available() and device == "cpu") else "cpu"
+    device = torch.device("cuda") if torch.cuda.is_available() else device
+    print(device)
 
     assert algorithm in ['ppo', 'logic']
 
