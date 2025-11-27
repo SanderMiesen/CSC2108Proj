@@ -82,8 +82,8 @@ def main(algorithm: str,
 
     make_deterministic(seed)
     
-    device = torch.device("mps") if (torch.backends.mps.is_available() and device == "cpu") else "cpu"
-    device = torch.device("cuda") if torch.cuda.is_available() else device
+    # device = torch.device("mps") if (torch.backends.mps.is_available() and device == "cpu") else "cpu"
+    # device = torch.device("cuda") if torch.cuda.is_available() else device
     print(device)
 
     assert algorithm in ['ppo', 'logic']
@@ -190,6 +190,7 @@ def main(algorithm: str,
 
                 step_list.append([time_step])
                 reward_list.append([avg_return])
+                writer.add_scalar('AvgReturn', avg_return, time_step)
                 if algorithm == 'logic':
                     weights_list.append([(agent.get_weights().tolist())])
 
@@ -208,7 +209,9 @@ def main(algorithm: str,
         running_ret += ret
         i_episode += 1
         writer.add_scalar('Return', ret, i_episode)
+        writer.add_scalar('ReturnPerStep', ret, time_step)
         writer.add_scalar('Epsilon', epsilon, i_episode)
+        writer.add_scalar('EpisodeLength', t + 1, i_episode)
 
     env.close()
     pbar.close()

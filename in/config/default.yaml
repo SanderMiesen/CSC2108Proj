@@ -1,8 +1,8 @@
 # For a detailed description of each parameter, please refer to the documentation or train.py
 algorithm: logic # default : none, set to "ppo" for neural agent or "logic" for logic agent
 environment: getout # default : none
-rules: getout_no_search_50 # default : "default"
-device: cpu # default : "cpu"
+rules: getout_human_assisted #getout_no_search_50 # default : "default"
+device: cuda:0 # default : "cpu"
 total_steps: 800000 # 10000 # default : 800000
 max_ep_len: 500 # default : 500
 update_steps: 1000 # default : none
