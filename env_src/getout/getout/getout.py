@@ -112,6 +112,10 @@ class Getout(gym.Env):
         # Get reward and update score
         reward = self.level.get_reward()
         self.score += reward
+        
+        #### log thingy ### 
+        # self.log_entity_positions(action, reward)
+
 
         return self.get_obs(), reward, terminated, truncated, self.get_info()
 
@@ -189,4 +193,39 @@ class Getout(gym.Env):
         """
         return {}
 
+    # def log_entity_positions(self):
+    #     """
+    #     Print entity identifiers with their current positions.
+    #     """
+    #     positions = []
+    #     for entity in self.level.entities:
+    #         positions.append(f"{entity._entity_id.name}@({entity.x:.2f},{entity.y:.2f})")
+    #     print(f"[Getout] step={self.step_counter} score={self.score:.2f} :: " + ", ".join(positions))
 
+
+    def log_entity_positions(self, action, reward):
+        rows = 3
+        track = [['.'] * self.width for _ in range(rows)]
+        entries = []
+
+        def place_char(row_idx, col_idx, ch):
+            if 0 <= row_idx < rows and 0 <= col_idx < self.width:
+                track[row_idx][col_idx] = ch if track[row_idx][col_idx] == '.' else '*'
+
+        for e in self.level.entities:
+            ch = {'PLAYER': 'P', 'KEY': 'K', 'DOOR': 'D', 'GROUND_ENEMY': 'E',
+                  'GROUND_ENEMY2': 'E', 'GROUND_ENEMY3': 'E',
+                  'BUZZSAW1': 'B', 'BUZZSAW2': 'B'}.get(e._entity_id.name, '?')
+            col_idx = int(round(e.x))
+            # compress vertical position into 3 rows (top row = highest y)
+            row_idx = rows - 1 - min(rows - 1, max(0, int(e.y / self.level.height * rows)))
+            if e._entity_id == EntityID.PLAYER and e.y > 2.5:
+                # if player is above 2.5, render on the middle line
+                row_idx = rows - 2
+            place_char(row_idx, col_idx, ch)
+            entries.append(f"{e._entity_id.name}@({e.x:.2f},{e.y:.2f})")
+
+        print(f"[Getout] step={self.step_counter} reward={reward:.2f} score={self.score:.2f} action={action}")
+        for row in track:
+            print(f"[Getout] |{''.join(row)}|")
+        print(f"[Getout] {' '.join(entries)}")
