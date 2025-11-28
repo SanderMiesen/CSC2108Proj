@@ -142,13 +142,13 @@ class Player(Entity):
                 # touched enemy -> end game
                 self.level.terminate(lost=True)
 
-        if entity._entity_id == EntityID.KEY:
+        if entity.is_key:
             self.collisions[0] = True
             self.level.entities.remove(entity)
             self.level.add_key(1)
             self.level.take_reward(self.level.reward_values['key'])
 
-        if entity._entity_id == EntityID.DOOR:
+        if entity.is_door:
             self.collisions[1] = True
             if self.level.get_key() > 0:
                 self.level.take_reward(self.level.reward_values['door'])

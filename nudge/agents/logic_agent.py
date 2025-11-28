@@ -86,7 +86,8 @@ class LogicPPO:
     def select_action(self, state, epsilon=0.0):
         logic_state, neural_state = state
         logic_state = torch.tensor(logic_state, dtype=torch.float32, device=self.device).unsqueeze(0)
-        neural_state = torch.tensor(neural_state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        # neural_state = torch.tensor(neural_state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        neural_state = torch.as_tensor(neural_state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
         # select random action with epsilon probability and policy probiability with 1-epsilon
         with torch.no_grad():
