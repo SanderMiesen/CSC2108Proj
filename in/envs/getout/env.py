@@ -101,13 +101,13 @@ class NudgeEnv(NudgeBaseEnv):
             elif key == 'door':
                 logic_state[2][2] = 1
                 logic_state[2][-2:] = value
-            elif key == 'ground_enemy':
+            elif key == 'enemy':
                 logic_state[3][3] = 1
                 logic_state[3][-2:] = value
-            elif key == 'ground_enemy2':
+            elif key == 'enemy2':
                 logic_state[4][3] = 1
                 logic_state[4][-2:] = value
-            elif key == 'ground_enemy3':
+            elif key == 'enemy3':
                 logic_state[5][3] = 1
                 logic_state[5][-2:] = value
             elif key == 'buzzsaw1':
