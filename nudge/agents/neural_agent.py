@@ -79,7 +79,8 @@ class NeuralPPO:
         _, neural_state = state
         # select random action with epsilon probability and policy probability with 1-epsilon
         with torch.no_grad():
-            state = torch.tensor(neural_state, dtype=torch.float32).to(self.device).flatten() # flatten the state to feed into policy
+            # avoid copying tensors; as_tensor handles both numpy and tensor inputs
+            state = torch.as_tensor(neural_state, dtype=torch.float32, device=self.device).flatten()
             action, action_logprob = self.policy_old.act(state, epsilon=epsilon)
 
         self.buffer.states.append(state)
