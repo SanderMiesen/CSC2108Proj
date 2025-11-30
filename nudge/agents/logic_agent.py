@@ -36,6 +36,7 @@ class NsfrActorCritic(nn.Module):
 
     def act(self, logic_state, epsilon=0.0):
         action_probs = self.actor(logic_state)
+        # import ipdb; ipdb.set_trace()
 
         # e-greedy
         if self.rng.random() < epsilon:
@@ -50,6 +51,14 @@ class NsfrActorCritic(nn.Module):
         # action = dist.sample()
         action_logprob = dist.log_prob(action)
         return action.detach(), action_logprob.detach()
+    
+    def act_eval(self, logic_state):
+        action_probs = self.actor(logic_state)
+        dist = Categorical(action_probs)
+        action = dist.sample()
+        action_logprob = dist.log_prob(action)
+        return action.detach(), action_logprob.detach()
+
 
     def evaluate(self, neural_state, logic_state, action):
         action_probs = self.actor(logic_state)
@@ -93,7 +102,23 @@ class LogicPPO:
             # state = torch.FloatTensor(state).to(device)
             # import ipdb; ipdb.set_trace()
             action, action_logprob = self.policy_old.act(logic_state, epsilon=epsilon)
-        
+        self.buffer.neural_states.append(neural_state)
+        self.buffer.logic_states.append(logic_state)
+        action = torch.squeeze(action)
+        self.buffer.actions.append(action)
+        action_logprob = torch.squeeze(action_logprob)
+        self.buffer.logprobs.append(action_logprob)
+        predicate = self.prednames[action.item()]
+        return predicate
+    
+    def select_action_eval(self, state):
+        logic_state, neural_state = state
+        logic_state = torch.tensor(logic_state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        neural_state = torch.tensor(neural_state, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+        # select random action with epsilon probability and policy probiability with 1-epsilon
+        with torch.no_grad():
+            action, action_logprob = self.policy_old.act_eval(logic_state)
         self.buffer.neural_states.append(neural_state)
         self.buffer.logic_states.append(logic_state)
         action = torch.squeeze(action)
