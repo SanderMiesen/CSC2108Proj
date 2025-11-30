@@ -58,7 +58,7 @@ class Level:
 
     def add_key(self, n):
         self.key_collected += n
-
+        
     def get_key(self):
         return self.key_collected
 

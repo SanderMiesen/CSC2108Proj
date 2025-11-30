@@ -7,6 +7,7 @@ class Door(Entity):
     def __init__(self, level, x, y, resource_loader=None):
         super().__init__(level, EntityID.DOOR, x, y)
 
+        self.is_door = True
         self.sprites = self._load_sprites(resource_loader) if resource_loader is not None else None
 
     def _load_sprites(self, resource_loader):

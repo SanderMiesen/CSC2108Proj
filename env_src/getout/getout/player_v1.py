@@ -67,6 +67,7 @@ class Player(Entity):
     def set_action(self, action):
         if type(action) is int:
             self.action = coin_jump_actions_from_unified(action)
+            print(f"Converted action int {action} to actions list {self.action}")
         else:
             self.action = action
 
@@ -144,14 +145,12 @@ class Player(Entity):
             else:
                 # touched enemy -> end game
                 self.level.terminate(lost=True)
-
-        if entity._entity_id == EntityID.KEY:
+        elif entity.is_key:
             self.collisions[0] = True
             self.level.entities.remove(entity)
             self.level.add_key(1)
             self.level.take_reward(self.level.reward_values['key'])
-
-        if entity._entity_id == EntityID.DOOR:
+        elif entity.is_door:
             self.collisions[1] = True
             if self.level.get_key() > 0:
                 self.level.take_reward(self.level.reward_values['door'])

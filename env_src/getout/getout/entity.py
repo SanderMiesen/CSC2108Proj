@@ -21,6 +21,8 @@ class Entity:
         self.ay = 0
 
         self.is_enemy = False
+        self.is_key = False
+        self.is_door = False    
 
         self.size = (1.0, 1.0) #assumption is never greater than (1,1)
         self.halfWidth = self.size[0] / 2
