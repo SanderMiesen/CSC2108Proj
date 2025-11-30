@@ -18,8 +18,8 @@ class Getout(gym.Env):
 
     def __init__(self, render=True, resource_path=None, start_on_first_action=False, width=50, seed=None):
         # self.unwrapped = self 
-        # 4 actions: idle/noop, left, right jump, down
-        self.action_space = Discrete(5)
+        # 4 actions: jump, left, right, reset
+        self.action_space = Discrete(4)
         # Observation space: player x,y ; enemy x,y ; key x,y ; door x,y 
         self.observation_space = Dict(
             {
