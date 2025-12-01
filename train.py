@@ -91,6 +91,7 @@ def main(algorithm: str,
     if env_kwargs is None:
         env_kwargs = dict()
 
+
     if update_steps is None:
         if algorithm == 'ppo':
             update_steps = max_ep_len * 4

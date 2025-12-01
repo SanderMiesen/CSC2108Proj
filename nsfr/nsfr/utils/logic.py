@@ -16,6 +16,8 @@ def get_lang(lark_path, lang_base_path, dataset):
     Atoms are generated from the language.
     """
     du = DataUtils(lark_path=lark_path, lang_base_path=lang_base_path, dataset=dataset)
+    print('load language...')
+    print('path:', du.base_path)
     lang = du.load_language()
     clauses = du.get_clauses(lang)
     bk = du.get_bk(lang)

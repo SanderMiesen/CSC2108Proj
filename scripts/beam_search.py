@@ -55,12 +55,12 @@ def get_args():
                         choices=["getout_root", 'threefish_root', 'loot_root'])
     parser.add_argument('-m', "--model", required=True, help="the game mode for beam-search", dest='m',
                         choices=['getout', 'threefish', 'loot'])
-    parser.add_argument('-t', "--t-beam", type=int, default=3, help="Number of rule expantion of clause generation.")
-    parser.add_argument('-n', "--n-beam", type=int, default=8, help="The size of the beam.")
-    parser.add_argument("--n-max", type=int, default=50, help="The maximum number of clauses.")
+    parser.add_argument('-t', "--t-beam", type=int, default=3, help="Number of rule expantion of clause generation.") # default=3
+    parser.add_argument('-n', "--n-beam", type=int, default=4, help="The size of the beam.") # default=8
+    parser.add_argument("--n-max", type=int, default=50, help="The maximum number of clauses.") ## won't work anyway
     parser.add_argument("--s", type=int, default=1, help="The size of the logic program.")
     parser.add_argument('--scoring', type=bool, help='beam search rules with scored rule by trained ppo agent',
-                        default=False, dest='scoring')
+                        default=True, dest='scoring') #default=False
     parser.add_argument('-d', '--dataset', required=False, help='the dataset to load if scoring', dest='d',
                         choices=['getout.json', 'loot.json'])
     args = parser.parse_args()
@@ -69,6 +69,7 @@ def get_args():
 
 def run():
     args = get_args()
+    args.env = args.m # test, set env name as mode name, try to fix the error at beam.py get_nsfr_cgen_model()
     # load state info for searching if scoring
     if args.scoring:
         buffer = RolloutBuffer()
@@ -78,8 +79,10 @@ def run():
     lark_path = os.path.join(current_path, '../nsfr/nsfr', 'lark/exp.lark')
     lang_base_path = os.path.join(current_path, '../nsfr/nsfr', 'data/lang/')
 
+    #lang, clauses, bk, atoms = get_lang(
+    #    lark_path, lang_base_path, args.m, args.r)
     lang, clauses, bk, atoms = get_lang(
-        lark_path, lang_base_path, args.m, args.r)
+        lark_path, lang_base_path, args.m)
     bk_clauses = []
     # Neuro-Symbolic Forward Reasoner for clause generation
     NSFR_cgen = get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device=device)  # torch.device('cpu'))

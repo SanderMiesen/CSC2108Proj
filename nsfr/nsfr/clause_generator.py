@@ -1,4 +1,4 @@
-from .utils_beam import get_nsfr_cgen_model
+from .utils.beam import get_nsfr_cgen_model
 from .tensor_encoder import TensorEncoder
 from .infer import ClauseBodyInferModule
 from .refinement import RefinementGenerator
@@ -247,6 +247,22 @@ class ClauseGenerator(object):
         scores = torch.sum(scores, dim=1)
 
         return scores
+    # def scoring(self, action_probs, body_scores, actions, lam=0.5):
+    #     mask = actions.unsqueeze(0).expand(body_scores.size(0), -1).float()
+    #     counts = mask.sum(dim=1).clamp_min(1.0)
+    #     sim_sum = (body_scores * mask).sum(dim=1)
+    #     similarity = sim_sum / counts
+
+    #     eps = 1e-8
+    #     p = body_scores.clamp(eps, 1.0 - eps)
+    #     entropy = - (p * p.log() + (1 - p) * (1 - p).log())
+
+    #     ent_sum = (entropy * mask).sum(dim=1)
+    #     uncertainty = ent_sum / counts
+
+    #     scores = similarity - lam * uncertainty
+
+    #     return scores
 
     #
     def get_action_probs_go(self, predname):
