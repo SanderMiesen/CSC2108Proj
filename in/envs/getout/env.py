@@ -46,7 +46,7 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
 
         # Register underlying game env only once
         try:
-            register(id="getout", entry_point="env_src.getout.getout.getout:Getout")
+            register(id="getout", entry_point="env_src.getout.getout.getout_custom:Getout")
         except gym.error.Error:
             pass  # already registered
         # Create underlying game environment
@@ -59,15 +59,9 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
         self.n_features = 6
         self.n_objects = 8 if self.plusplus else 4
 
-        # Define observation space for logic_state: shape (n_objects, n_features)
-        # You can tighten bounds if you want; here we stay generic.
-        self.observation_space = gym.spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(self.n_objects, self.n_features),
-            dtype=np.float32,
-        )
-        # Action space is the same as the base env
+        # Define observation space
+        self.observation_space = self.env.observation_space 
+        # Action space 
         self.action_space = self.env.action_space
 
     # Helper function: generate new level
@@ -76,6 +70,7 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
             enemy=False, enemies=False, key_door=False
         )
         level_generator.generate(self.env, seed=np.random.randint(0, 10000))
+        # level_generator.generate(self.env, seed=1)
 
     # Reset function
     def reset(self, seed=None, options=None):
@@ -84,14 +79,14 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
         """
         gym.Env.reset(self, seed=seed)
         # Reset internal game env
-        obs, _ = self.env.reset(seed=seed)
+        _, _ = self.env.reset(seed=seed)
         # Regenerate a new random level
         self._generate_new_level()
         if self.render_enabled:
             self.env.render()
         # Use env.get_obs() to get the structured obs dict
-        logic_state = self.extract_logic_state(self.env.get_obs())
-        return logic_state.astype(np.float32), {}
+        # logic_state = self.extract_logic_state(self.env.get_obs())
+        return self.env.get_obs(), {}
 
     # Step function
     def step(self, action, is_mapped: bool = False):
@@ -103,8 +98,8 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
         """
         # If you ever want to use pred2action mapping, do it here when is_mapped=False.
         obs, reward, terminated, truncated, info = self.env.step(action)
-        logic_state = self.extract_logic_state(obs)
-        return logic_state.astype(np.float32), reward, terminated, truncated, info
+        # logic_state = self.extract_logic_state(obs)
+        return obs, reward, terminated, truncated, info
 
     # State extractor 
     def extract_state(self, observation):

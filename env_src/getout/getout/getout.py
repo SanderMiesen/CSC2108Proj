@@ -13,25 +13,25 @@ from gymnasium.spaces import Discrete, Box, Dict
 
 from .entityEncoding import EntityID
 
-
 class Getout(gym.Env):
 
     def __init__(self, render=True, resource_path=None, start_on_first_action=False, width=50, seed=None):
         # self.unwrapped = self 
-        # 4 actions: idle/noop, left, right jump, down
-        self.action_space = Discrete(5)
-        # Observation space: player x,y ; enemy x,y ; key x,y ; door x,y 
-        self.observation_space = Dict(
-            {
-                "player": Box(low=np.array([0,0], dtype=float), 
-                              high=np.array([width,16], dtype=float)),
-                "enemy": Box(low=np.array([0,0], dtype=float), 
-                             high=np.array([width,16], dtype=float)),
-                "key": Box(low=np.array([0,0], dtype=float), 
-                           high=np.array([width,16], dtype=float)),
-                "door": Box(low=np.array([0,0], dtype=float), 
-                            high=np.array([width,16], dtype=float)),
-            }
+        # 4 actions: idle/noop, left, right, jump
+        self.action_space = Discrete(4)
+        # Observation space
+        self.observation_space = Box(
+            low=np.array([
+                0, 0,   # player x, y
+                0, 0,   # player-enemy x, y
+                0, 0,   # player-key x, y or player-door x, y (depending on whether key collected)
+            ], dtype=np.float32),
+            high=np.array([
+                width, 16,
+                width, 16,
+                width, 16,
+            ], dtype=np.float32),
+            dtype=np.float32
         )
 
         self.zoom = 42 - width//2
@@ -48,6 +48,7 @@ class Getout(gym.Env):
         self.player = Player(self.level, 2, 2, self.resource_loader)
         self.level.entities.append(self.player)
         self.width = width
+        self.get_between_door_enemy = False
 
         # self.camera = TrackingCamera(900, 600, self.player, zoom=self.zoom) if render else None
         self.camera = Camera(900, 600, x=-10, y=-50, zoom=self.zoom) if render else None
@@ -80,6 +81,7 @@ class Getout(gym.Env):
         # Init terminated and truncated flags
         terminated = False 
         truncated = False
+        reward = 0.0
         # Start stepping the game only after the first action.
         if self.start_on_first_action and not self.has_started:
             if isinstance(action, int):
@@ -92,24 +94,56 @@ class Getout(gym.Env):
                 self.has_started = True
         # Increment step counter
         self.step_counter += 1
+        # If step 1, save the key and door positions
+        # if self.step_counter == 1:
+        #     for entity in self.level.entities:
+        #         if entity.is_door:
+        #             self.door_x = entity.x
+        #         if entity.is_key:
+        #             self.key_x = entity.x
         # Apply action and step the level
         self.player.set_action(action)
         self.level.step()
         # Render the environment
-        self.render()
+        # self.render()
         # If we want to add episode truncation on score <= 0, uncomment this
-        """
-        if self.score + reward <= 0 and not self.level.terminated:
-            # terminate if the score drops below zero
-            self.level.terminate(True)
+        # if self.score + reward <= 0 and not self.level.terminated:
+        #     truncated = True
+        if self.step_counter >= 500:
             truncated = True
-        """
+            self.level.terminate(lost=False)
         # Check if the level has terminated after the step
         if self.level.terminated:
             terminated = True
+            if self.level.lost:
+                reward -= (500 - self.step_counter)*0.1 # bonus penalty for getting caught early
         # Get reward and update score
-        reward = self.level.get_reward()
+        reward += self.level.get_reward()
+        if reward < 15 and reward > 5:
+            print(f"got the key!")
+        elif reward >= 15:
+            print(f"Exited the level!")
+        # if reward > 1 and reward < 5:
+        #     print(f"Got the key!")
+        # if reward >= 10:
+        #     print(f"Exited the level!")
+        # Reward agent for getting close to the door once they have the key
+        # if self.level.key_collected > 0: 
+        #     player_x = self.player.x
+        #     reward += 0.1 * np.linalg.norm(player_x - self.door_x) / np.linalg.norm(self.key_x - self.door_x)
+            # Also reward for getting to between the enemy and the door
+            # if enemy_x < player_x < door_x and not self.get_between_door_enemy:
+            #     print("Got between door and enemy!")
+            #     self.get_between_door_enemy = True
+            #     reward += 5 
+            # elif door_x < player_x < enemy_x and not self.get_between_door_enemy:
+            #     print("Got between door and enemy!")
+            #     self.get_between_door_enemy = True
+            #     reward += 5
         self.score += reward
+        # print(self.get_obs())
+        # if terminated:
+            # print(f"Episode terminated after {self.step_counter} steps with score {self.score:.2f}")
 
         return self.get_obs(), reward, terminated, truncated, self.get_info()
 
@@ -143,6 +177,8 @@ class Getout(gym.Env):
         self.player = Player(self.level, 2, 2, self.resource_loader)
         self.level.entities.append(self.player)
         self.step_counter = 0
+        self.has_started = not self.start_on_first_action
+        self.get_between_door_enemy = False
         return self.get_obs(), self.get_info()
     
     def get_obs(self):
@@ -152,30 +188,28 @@ class Getout(gym.Env):
         - position of the enemy/enemies
         - position of the key
         - position of the door
-        - current score
-        - current reward
+        - whether the player has collected the key
         """
-        obs = {}
+        obs = np.zeros((self.observation_space.shape), dtype=np.float32)
+        player_pos = np.array([0.0, 0.0], dtype=float)
+        enemy_pos = np.array([0.0, 0.0], dtype=float)
+        key_pos = np.array([0.0, 0.0], dtype=float)
+        door_pos = np.array([0.0, 0.0], dtype=float)
         # Add entity info
         for entity in self.level.entities:
             if entity._entity_id.value == EntityID.PLAYER.value:
                 player_pos = np.array([entity.x, entity.y], dtype=float)
-                obs["player"] = player_pos
             elif entity._entity_id.value == EntityID.GROUND_ENEMY.value:
                 enemy_pos = np.array([entity.x, entity.y], dtype=float)
-                obs["enemy"] = enemy_pos
             elif entity._entity_id.value == EntityID.KEY.value:
                 key_pos = np.array([entity.x, entity.y], dtype=float)
-                obs["key"] = key_pos
             elif entity._entity_id.value == EntityID.DOOR.value:
                 door_pos = np.array([entity.x, entity.y], dtype=float)
-                obs["door"] = door_pos
             else:
                 raise ValueError(f"Unknown entity id: {entity._entity_id}")
-        # Add current score
-        obs["score"] = self.score
-        # Add current reward
-        obs["reward"] = self.level.reward
+        obs[0:2] = player_pos
+        obs[2:4] = enemy_pos - player_pos
+        obs[4:6] = (key_pos - player_pos) if self.level.key_collected == 0 else door_pos - player_pos
         return obs
     
     def get_info(self):
