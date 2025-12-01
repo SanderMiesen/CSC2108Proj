@@ -94,56 +94,21 @@ class Getout(gym.Env):
                 self.has_started = True
         # Increment step counter
         self.step_counter += 1
-        # If step 1, save the key and door positions
-        # if self.step_counter == 1:
-        #     for entity in self.level.entities:
-        #         if entity.is_door:
-        #             self.door_x = entity.x
-        #         if entity.is_key:
-        #             self.key_x = entity.x
         # Apply action and step the level
         self.player.set_action(action)
         self.level.step()
-        # Render the environment
-        # self.render()
-        # If we want to add episode truncation on score <= 0, uncomment this
-        # if self.score + reward <= 0 and not self.level.terminated:
-        #     truncated = True
+        # Check for truncation condition
         if self.step_counter >= 500:
             truncated = True
             self.level.terminate(lost=False)
+        # Render the environment
+        # self.render()
         # Check if the level has terminated after the step
         if self.level.terminated:
             terminated = True
-            if self.level.lost:
-                reward -= (500 - self.step_counter)*0.1 # bonus penalty for getting caught early
         # Get reward and update score
-        reward += self.level.get_reward()
-        if reward < 15 and reward > 5:
-            print(f"got the key!")
-        elif reward >= 15:
-            print(f"Exited the level!")
-        # if reward > 1 and reward < 5:
-        #     print(f"Got the key!")
-        # if reward >= 10:
-        #     print(f"Exited the level!")
-        # Reward agent for getting close to the door once they have the key
-        # if self.level.key_collected > 0: 
-        #     player_x = self.player.x
-        #     reward += 0.1 * np.linalg.norm(player_x - self.door_x) / np.linalg.norm(self.key_x - self.door_x)
-            # Also reward for getting to between the enemy and the door
-            # if enemy_x < player_x < door_x and not self.get_between_door_enemy:
-            #     print("Got between door and enemy!")
-            #     self.get_between_door_enemy = True
-            #     reward += 5 
-            # elif door_x < player_x < enemy_x and not self.get_between_door_enemy:
-            #     print("Got between door and enemy!")
-            #     self.get_between_door_enemy = True
-            #     reward += 5
+        reward = self.level.get_reward()
         self.score += reward
-        # print(self.get_obs())
-        # if terminated:
-            # print(f"Episode terminated after {self.step_counter} steps with score {self.score:.2f}")
 
         return self.get_obs(), reward, terminated, truncated, self.get_info()
 

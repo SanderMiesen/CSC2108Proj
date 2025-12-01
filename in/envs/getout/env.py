@@ -37,7 +37,7 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
 
     metadata = {"render_modes": []}
 
-    def __init__(self, mode: str, plusplus: bool = False, noise: bool = False, render: bool = False):
+    def __init__(self, mode: str, plusplus: bool = False, noise: bool = False, render: bool = False, seed=np.random.randint(1, 10000)):
         NudgeBaseEnv.__init__(self, mode)
         gym.Env.__init__(self)
         self.plusplus = plusplus
@@ -46,13 +46,13 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
 
         # Register underlying game env only once
         try:
-            register(id="getout", entry_point="env_src.getout.getout.getout_custom:Getout")
+            register(id="getout", entry_point="env_src.getout.getout.getout:Getout")
         except gym.error.Error:
             pass  # already registered
         # Create underlying game environment
         self.env = gym.make("getout", render=render).unwrapped
         # Generate initial level
-        self._generate_new_level()
+        self._generate_new_level(seed=seed)
         if self.render_enabled:
             self.env.render()
         # Logic-state dimensions
@@ -65,11 +65,11 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
         self.action_space = self.env.action_space
 
     # Helper function: generate new level
-    def _generate_new_level(self):
+    def _generate_new_level(self, seed=np.random.randint(1, 10000)):
         level_generator = ParameterizedLevelGenerator(
             enemy=False, enemies=False, key_door=False
         )
-        level_generator.generate(self.env, seed=np.random.randint(0, 10000))
+        level_generator.generate(self.env, seed=seed)
         # level_generator.generate(self.env, seed=1)
 
     # Reset function
@@ -81,7 +81,7 @@ class NudgeEnv(NudgeBaseEnv, gym.Env):
         # Reset internal game env
         _, _ = self.env.reset(seed=seed)
         # Regenerate a new random level
-        self._generate_new_level()
+        self._generate_new_level(seed=seed)
         if self.render_enabled:
             self.env.render()
         # Use env.get_obs() to get the structured obs dict

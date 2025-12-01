@@ -42,7 +42,6 @@ class GroundEnemy(Entity):
         return sprites
 
     def step(self):
-
         self.ax = -self.move_speed if self.facing_left else self.move_speed
 
         super(GroundEnemy, self).step()
@@ -104,7 +103,6 @@ class GroundEnemy2(Entity):
         return sprites
 
     def step(self):
-
         self.ax = -self.move_speed if self.facing_left else self.move_speed
 
         super(GroundEnemy2, self).step()
