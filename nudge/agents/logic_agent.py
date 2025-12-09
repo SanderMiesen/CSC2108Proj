@@ -101,14 +101,14 @@ class LogicPPO:
         self.buffer.actions.append(action)
         action_logprob = torch.squeeze(action_logprob)
         self.buffer.logprobs.append(action_logprob)
-        predicate = self.prednames[action.item()]
+        predicate = self.prednames[action.item()] # list lookup
         return predicate
 
     def update(self):
         # Monte Carlo estimate of returns
         rewards = []
         discounted_reward = 0
-        for reward, is_terminal in zip(reversed(self.buffer.rewards), reversed(self.buffer.is_terminals)):
+        for reward, is_terminal in zip(reversed(self.buffer.rewards), reversed(self.buffer.is_terminals)):  # this prevents rewards passing thru episodes
             if is_terminal:
                 discounted_reward = 0
             discounted_reward = reward + (self.gamma * discounted_reward)
