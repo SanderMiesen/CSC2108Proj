@@ -193,16 +193,8 @@ class Getout(gym.Env):
         """
         return {}
 
-    # def log_entity_positions(self):
-    #     """
-    #     Print entity identifiers with their current positions.
-    #     """
-    #     positions = []
-    #     for entity in self.level.entities:
-    #         positions.append(f"{entity._entity_id.name}@({entity.x:.2f},{entity.y:.2f})")
-    #     print(f"[Getout] step={self.step_counter} score={self.score:.2f} :: " + ", ".join(positions))
 
-
+    """ Debugging function: rough visualization of environment state """
     def log_entity_positions(self, action, reward):
         rows = 3
         track = [['.'] * self.width for _ in range(rows)]

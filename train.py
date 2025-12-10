@@ -176,7 +176,7 @@ def main(algorithm: str,
             rtpt.step()
             ret += reward
 
-            if time_step % update_steps == 0:
+            if time_step % update_steps == 0: # backprop every #update_steps (def 100)
                 agent.update()
 
             # printing average reward
