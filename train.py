@@ -28,6 +28,8 @@ from argparse import ArgumentParser
 
 ### GC ### 
 from env_src.getout.getout.goal_conduciveness import GoalConduciveness
+# debug support # 
+from env_src.getout.getout.state_debug_visual import log_entity_positions
 
 
 
@@ -54,6 +56,9 @@ def main(algorithm: str,
          recover: bool = False,
          save_steps: int = 250000,
          stats_steps: int = 2000,
+         gc_gamma: float = 1.0,
+         gc_normalize: bool = True,
+         gc_update: str = "with_agent",
          ):
     """
 
@@ -81,6 +86,9 @@ def main(algorithm: str,
             before completion.
         save_steps: Number of steps between each checkpoint save
         stats_steps: Number of steps between each statistics summary timestamp
+        gc_gamma: Discount factor for Goal Conduciveness potential shaping
+        gc_normalize: Whether to normalize Goal Conduciveness score by subgoal count
+        gc_update: When to append new subgoals ('with_agent' or 'episodic')
     """
 
     make_deterministic(seed)
@@ -103,7 +111,7 @@ def main(algorithm: str,
     env = NudgeBaseEnv.from_name(environment, mode=algorithm, **env_kwargs)
 
     now = datetime.now()
-    experiment_dir = OUT_PATH / "runs" / environment / algorithm / now.strftime("%y-%m-%d-%H-%M")
+    experiment_dir = OUT_PATH / "runs" / environment / f"{algorithm}_gc" / now.strftime("%y-%m-%d-%H-%M")
     checkpoint_dir = experiment_dir / "checkpoints"
     image_dir = experiment_dir / "images"
     log_dir = experiment_dir
@@ -157,11 +165,12 @@ def main(algorithm: str,
     writer = SummaryWriter(str(log_dir))
     rtpt.start()
     
-    
-    """ Naive Implementation of Goal Conduciveness """
-    gc = GoalConduciveness()
-    
+    """ Implementation of Goal Conduciveness """
+    gc = GoalConduciveness(gamma=gc_gamma, normalize=gc_normalize, update=gc_update)
+    """"""
 
+    visual_state_debug = False  # set True to enable visual state debugging
+    
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
         state, state_variables = env.reset()
@@ -184,6 +193,7 @@ def main(algorithm: str,
             action = agent.select_action(state, epsilon=epsilon)
 
             state, state_variables, reward, done = env.step(action)
+            base_reward = reward
             
             """ Goal Conduciveness """
             # if reward obtained, we need to check whether a new reward source has been found (ie a new subgoal)
@@ -212,6 +222,16 @@ def main(algorithm: str,
             reward += potential_diff  # for higher resolution we may want to store both pre and post reward term buffer values 
             
             gc.display_GC() # debug purposes
+            if visual_state_debug:
+                log_entity_positions(
+                    env,
+                    action,
+                    base_reward,
+                    potential_diff=potential_diff,
+                    r_gc=r_gc,
+                    n_episodes=n_episodes,
+                    step=getattr(env.env, "step_counter", time_step),
+                )
             """"""
 
 
@@ -284,6 +304,33 @@ def main(algorithm: str,
             for row in weights_list:
                 dataset.writerow(row)
 
+    # Persist Goal Conduciveness state for reuse with a trained model
+    subgoals_dump = {
+        int(idx): {
+            "goal": sg.goal_obj,
+        }
+        for idx, sg in gc.subgoals.items()
+    }
+    queued_dump = {
+        int(idx): {
+            "goal": sg.goal_obj,
+        }
+        for idx, sg in gc.subgoal_queue.items()
+    }
+    gc_payload = {
+        "goal_conduciveness": {
+            "gamma": gc.gamma,
+            "normalize": gc.normalize,
+            "update": gc.update,
+            "subgoals": subgoals_dump,
+            "queued_subgoals": queued_dump,
+        }
+    }
+    with open(experiment_dir / "goal_conduciveness.yaml", "w") as f:
+        yaml.safe_dump(gc_payload, f)
+
+
+
     end_time = time.time()
     print("Finished training at", datetime.now().strftime("%H:%M"))
     print(f"Total training time: {(end_time - start_time) / 60 :.0f} min")
@@ -298,7 +345,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "default.yaml"
+        config_path = IN_PATH / "config" / "logic_with_Goal_Conduciveness.yaml"
     else:
         config_path = Path(args.config)
 

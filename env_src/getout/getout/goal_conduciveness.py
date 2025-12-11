@@ -1,20 +1,14 @@
 """
 Docstring for env_src.getout.getout.goal_conduciveness
 
-Implementation of Goal Conduciveness metric 
-    - generation of subgoal set 
+Implementation of Goal Conduciveness metric:
+    - generation of subgoal set:
+        - adding *new* subgoals first to queue, then adding queue to subgoal set when triggered
+        - (see 'with_agent', 'episodic')
     - current state of subgoal completion 
-    - computation of total GC score 
-    - gamma value 
-    - generate reward term (used elsewhere?)
-        
-NOTE: 
-unclear whether should implement within env classes:
-env_src/getout/getout/getout.py
-in/envs/getout/env.py
-
-...or agent classes: 
-logic_agent etc. 
+    - computation of total GC score
+    - gamma value
+    - reward term is computed outside of class
 """
 
 
@@ -31,8 +25,9 @@ class SubGoal():
             raise ValueError("Cannot compute progress for inactive subgoal")
         self.progress = (self.init_dist - curr_dist) / (self.init_dist + 1e-7)
         
-        # do we also need to constrain it to non-negative
+        # do we also need to constrain it to non-negative?
         # self.progress = max(0, self.progress)
+        
         return self.progress
 
     def complete_subgoal(self):
@@ -129,15 +124,7 @@ class GoalConduciveness():
             subgoal.reset_subgoal()
         self.GC_score = 0.0
         return self.init_next_subgoal(1, state_dict) # set first subgoal to 'active' and compute initial distance to subgoal object
-    
-        # # function init_next_subgoal
-        # first_goal = self.subgoals[1]
-        # if first_goal and first_goal.goal_obj in state_dict:
-        #     init_dist = dist(state_dict['player'][0], state_dict[first_goal.goal_obj][0]) 
-        #     first_goal.init_subgoal(init_dist)
-        # else: 
-        #     return "no match found"
-        
+
     
     def add_subgoal_to_queue(self, obj_type): 
         # check if subgoal already exists
@@ -161,10 +148,10 @@ class GoalConduciveness():
             self.GC_score += subgoal.progress
             
         # normalization
-        if self.normalize: 
-            self.GC_score = self.GC_score / (len(self.subgoals) + 1e-7)
+        if self.normalize and len(self.subgoals) > 0: 
+            self.GC_score = self.GC_score / len(self.subgoals)
             
-        # apply gamma (can do outside of here!)
+        # apply gamma for reward term (done outside of here!)
         # self.GC_score_gamma = self.gamma * self.GC_score
         
         return self.GC_score
@@ -178,23 +165,8 @@ class GoalConduciveness():
         output += f"Total Goal Progress:  {self.GC_score}"
         return output
         
-        
-            
-    def compute_potential_difference(self): 
-        pass
-        
-        # this has to be computed with access to prev GC scores...
-        # so better done in higher level? 
-        # 
-        # GC_pd = GC_score_t+1 - GC_score_t
-        
-        # each subgoal has a current status wrt agent - complete / incomplete 
-        # GC_subgoal <- dist(agent, obj)
-        # reward term is based on current subgoal 
-        # each subgoal has value which must be reset at start of episode 
-        # perhaps these both can be reduced to value
-        
-    
+    # def compute_potential_difference(self): 
+    #     pass
 
 # helper function to calculate horizontal distance between objects
 def dist(obj1_x, obj2_x):
