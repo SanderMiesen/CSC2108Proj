@@ -1,3 +1,5 @@
+import numpy as np
+
 from PIL import Image
 from PIL.ImageDraw import ImageDraw
 
@@ -17,8 +19,12 @@ class Camera:
     def start_render(self):
         self.screen.paste(self._bgcolor, (0, 0, self.screen.size[0], self.screen.size[1]))
 
-    def end_render(self):
-        pass
+    def end_render(self, mode="human"):
+        if mode == "rgb_array":
+            # Convert PIL Image → NumPy array (H, W, 3)
+            return np.array(self.screen)[..., :3]  # drop alpha channel
+        # For future screen display, but do nothing for now:
+        return None
 
     def paint_rect(self, x, y, size, color=(255, 0, 0)):
         x = x * self.zoom - self.x

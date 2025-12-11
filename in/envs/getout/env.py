@@ -15,6 +15,8 @@ from nudge.env import NudgeBaseEnv
 sys.path.append(op.abspath(op.join(op.dirname(__file__), "..", "..", "..", "env_src")))
 from getout.getout.paramLevelGenerator import ParameterizedLevelGenerator
 
+register(id="getout", entry_point="env_src.getout.getout.getout:Getout")
+
 
 class NudgeEnv(NudgeBaseEnv):
     name = "getout"
@@ -27,13 +29,11 @@ class NudgeEnv(NudgeBaseEnv):
     }
     pred_names: Sequence
 
-    def __init__(self, mode: str, plusplus=False, noise=False, seed=np.random.randint(0, 10000)):
+    def __init__(self, mode: str, plusplus=False, noise=False, seed=np.random.randint(0, 10000), render=False):
         super().__init__(mode)
         self.plusplus = plusplus
         self.noise = noise
-        register(id="getout",
-                 entry_point="env_src.getout.getout.getout:Getout")
-        getout_env = gymnasium.make("getout").unwrapped 
+        getout_env = gymnasium.make("getout", render=render).unwrapped 
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
         level_generator.generate(getout_env, seed=seed)
         getout_env.render()

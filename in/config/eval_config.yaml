@@ -3,8 +3,9 @@
 
 agent_to_test: logic_rf10_paper # should be the name of an agent saved in the "evaluate_results/" directory
 env_name: getout # environment to evaluate on
-n_episodes: 50 # number of episodes to run for evaluation for each agent
-seed: 42 # random seed for reproducibility
+n_episodes: 1 # number of episodes to run for evaluation of each agent
+seed: 9999 # random seed for reproducibility, the first env for seed 42 is ez if you just want to see a successful eval
+render: True # whether to render the environment during evaluation
 
 step_to_start: 1 # which training step to start evaluation, should be in "evaluate_results/<agent_to_test>/checkpoints/" 
 step_to_end: 500002 # which training step to stop evaluation, INCLUSIVE if it exists (otherwise it will stop at the last available checkpoint before this)
