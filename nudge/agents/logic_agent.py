@@ -245,6 +245,7 @@ class RolloutBuffer:
         self.rewards = []
         self.is_terminals = []
         self.predictions = []
+        self.r_gc = [] # goal conduciveness reward term
 
     def clear(self):
         del self.actions[:]

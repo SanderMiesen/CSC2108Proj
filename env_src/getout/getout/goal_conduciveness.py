@@ -7,9 +7,7 @@ Implementation of Goal Conduciveness metric
     - computation of total GC score 
     - gamma value 
     - generate reward term (used elsewhere?)
-    
-# NOTE: the output value has to at least be stored elsewhere to compute potential difference GC(t+1) - GC(t)
-    
+        
 NOTE: 
 unclear whether should implement within env classes:
 env_src/getout/getout/getout.py
@@ -21,10 +19,9 @@ logic_agent etc.
 
 
 class SubGoal():
-    # # # subgoal has to be associated with OBJECT (type) # # # 
-    def __init__(self, obj_type, init_dist = 1.0, active = False):
+    def __init__(self, obj_type, active = False):
         self.goal_obj = obj_type
-        # self.init_dist = init_dist
+        self.init_dist = -999.0
         self.active = active
         self.progress = 0.0
     
@@ -33,11 +30,12 @@ class SubGoal():
         if not self.active: 
             raise ValueError("Cannot compute progress for inactive subgoal")
         self.progress = (self.init_dist - curr_dist) / (self.init_dist + 1e-7)
+        
         # do we also need to constrain it to non-negative
         # self.progress = max(0, self.progress)
         return self.progress
 
-    def complete_subgoal(self):  # if goal is completed (decided at env/agent level)
+    def complete_subgoal(self):
         self.progress = 1.0
         self.active = False
         
@@ -71,75 +69,106 @@ class GoalConduciveness():
         if update not in {'with_agent', 'episodic'}:
             raise ValueError("update parameter must be 'with_agent' or 'episodic'")
         self.update = update
-        
+    
     # load GC metric from previously trained agent 
     def load_GC(self, gc_info): 
         pass
     
+    
+    def get_active_subgoal(self): 
+        # returns subgoal and its 'index' 
+        active_subgoals = [(num, subgoal) for num, subgoal in self.subgoals.items() if subgoal.active]
+        if len(active_subgoals) > 1:
+            raise ValueError("Multiple active subgoals found")
+        elif len(active_subgoals) == 0:
+            # print("No active subgoals")
+            return None, None
+        else:
+            return active_subgoals[0] # should only be one active subgoal
+        
+        
+    def compute_active_progress(self, state_dict): 
+        goal_num, current_goal = self.get_active_subgoal()
+        if current_goal:
+            assert current_goal.goal_obj in state_dict
+            curr_dist = dist(state_dict['player'][0], state_dict[current_goal.goal_obj][0])
+            current_goal.compute_progress(curr_dist)
+        
+    
+    def complete_current_subgoal(self, obj_type, state_dict): 
+        goal_num, current_subgoal = self.get_active_subgoal()
+        if current_subgoal:
+            if current_subgoal.goal_obj == obj_type and goal_num != None:
+            
+                current_subgoal.complete_subgoal()
+                
+                if goal_num < len(self.subgoals): 
+                    self.init_next_subgoal(goal_num+1, state_dict)
+                else: 
+                    return "no further subgoals"
+            else: 
+                return "reward not associated with active goal"
+        else: 
+            return "no active goals"
+            
+        
+    def init_next_subgoal(self, goal_num, state_dict): 
+        if goal_num in self.subgoals:
+            next_goal = self.subgoals[goal_num]   
+            if next_goal.goal_obj in state_dict:
+                init_dist = dist(state_dict['player'][0], state_dict[next_goal.goal_obj][0]) 
+                next_goal.init_subgoal(init_dist)
+            else: 
+                return "no object match found"
+        else: 
+            return "no subgoals"
+        
+            
     def reset_GC_progress(self, state_dict): 
         for subgoal in self.subgoals.values():
             subgoal.reset_subgoal()
         self.GC_score = 0.0
-        
-        # set first subgoal to 'active' and compute initial distance to subgoal object
-        # MAYBE this whole thing is just its own function called activate_subgoal
-        first_goal = self.subgoals[1]
-        if first_goal and first_goal.goal_obj in state_dict:
-            init_dist = dist(state_dict['player'][0], state_dict[first_goal][0]) 
-            first_goal.init_subgoal(init_dist)
+        return self.init_next_subgoal(1, state_dict) # set first subgoal to 'active' and compute initial distance to subgoal object
+    
+        # # function init_next_subgoal
+        # first_goal = self.subgoals[1]
+        # if first_goal and first_goal.goal_obj in state_dict:
+        #     init_dist = dist(state_dict['player'][0], state_dict[first_goal.goal_obj][0]) 
+        #     first_goal.init_subgoal(init_dist)
+        # else: 
+        #     return "no match found"
         
     
     def add_subgoal_to_queue(self, obj_type): 
+        # check if subgoal already exists
         if any(subgoal.goal_obj == obj_type for subgoal in list(self.subgoals.values()) + list(self.subgoal_queue.values())):
-            return "subgoal already exists"
-
+            return False
         new_subgoal = SubGoal(obj_type=obj_type, active=False)
         self.subgoal_queue[self.num_goals] = new_subgoal
         self.num_goals += 1
+        return True
     
     def append_queue(self): 
         self.subgoals = self.subgoals | self.subgoal_queue # add new subgoals from queue
         self.subgoal_queue = {} # reset queue
         
-        
+    
     def compute_GC_score(self): 
         # summation 
-        self.GC_score = 0.0
-        for subgoal in self.subgoals: 
+        self.GC_score = 0.0 
+        ### TODO actually compute progress of active goal here using state_dict...
+        for subgoal in self.subgoals.values(): 
             self.GC_score += subgoal.progress
             
         # normalization
         if self.normalize: 
-            self.GC_score = self.GC_score / len(self.subgoals)
+            self.GC_score = self.GC_score / (len(self.subgoals) + 1e-7)
             
         # apply gamma (can do outside of here!)
         # self.GC_score_gamma = self.gamma * self.GC_score
         
         return self.GC_score
     
-    
-    def return_active_subgoal(self): 
-        active_subgoals = [(num, subgoal) for num, subgoal in self.subgoals.items() if subgoal.active]
-        if len(active_subgoals) > 1:
-            raise ValueError("Multiple active subgoals found")
-        elif len(active_subgoals) == 0:
-            print("Warning: No active subgoals")
-            return None
-        else:
-            return active_subgoals[0]
-    
-    def complete_current_subgoal(self): 
-        # find current active subgoal --> TODO confirm it is same as that passed in?...
-        current_subgoal = self.return_active_subgoal()
-        if current_subgoal:
-            goal_num, current_subgoal = current_subgoal
-            current_subgoal.complete_subgoal()
-            if goal_num < len(self.subgoals): 
-                self.subgoals[goal_num+1].init_subgoal()
-                # TODO problem here is that we're not getting external value for distance of the object! 
-                # maybe we just set it to ACTIVE with init 
-                # then from above we call get ACTIVE goal and check obj distance and use that to set its progress 
-
         
     def display_GC(self): 
         # display all subgoal progress (** nothing is recomputed here **)
@@ -153,7 +182,6 @@ class GoalConduciveness():
             
     def compute_potential_difference(self): 
         pass
-        # NOTE: hence gc_score should be kept in buffer..
         
         # this has to be computed with access to prev GC scores...
         # so better done in higher level? 
@@ -166,40 +194,8 @@ class GoalConduciveness():
         # each subgoal has value which must be reset at start of episode 
         # perhaps these both can be reduced to value
         
-        
-        
-        # WE could also pass the whole state representation INTO GoalConduciveness and then we can just USE it 
-        # for any update necessary
-        
+    
 
 # helper function to calculate horizontal distance between objects
 def dist(obj1_x, obj2_x):
     return abs(obj1_x - obj2_x)
-            
-"""
-# decoding the converted_state_representation 
-
-# kind of annoying it would be nice to just work with the object types directly 
-
-# bypass by getting env to pass out unconverted state up to higher level 
-
-
-            if key == 'player':
-                logic_state[0][0] = 1
-                logic_state[0][-2:] = value
-            elif key == 'key':
-                logic_state[1][1] = 1
-                logic_state[1][-2:] = value
-            elif key == 'door':
-                logic_state[2][2] = 1
-                logic_state[2][-2:] = value
-            elif key == 'enemy':
-                logic_state[3][3] = 1
-                logic_state[3][-2:] = value
-            elif key == 'enemy2':
-                logic_state[4][3] = 1
-                logic_state[4][-2:] = value
-            elif key == 'enemy3':
-                logic_state[5][3] = 1
-                logic_state[5][-2:] = value
-"""

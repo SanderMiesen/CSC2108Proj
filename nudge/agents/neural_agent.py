@@ -183,6 +183,7 @@ class RolloutBuffer:
         self.logprobs = []
         self.rewards = []
         self.is_terminals = []
+        self.r_gc = [] # goal conduciveness reward term
 
     def clear(self):
         del self.actions[:]

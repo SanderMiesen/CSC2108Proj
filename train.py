@@ -185,61 +185,39 @@ def main(algorithm: str,
 
             state, state_variables, reward, done = env.step(action)
             
-            """ gc """
-
-                
-            
+            """ Goal Conduciveness """
+            # if reward obtained, we need to check whether a new reward source has been found (ie a new subgoal)
+            # ...or whether a current active subgoal has been completed
             if reward > 0:             
                 # ugly but functional way to check for player collisions (ie determine source of reward)
-                reward_sources = env.env.level.entities[0].collisions # key=0, door=1, enemy=2
+                reward_sources = env.env.level.entities[0].collisions  # (key=0, door=1, enemy=2)
                 if reward_sources[0] == True:
                     reward_source = 'key'
                 elif reward_sources[1] == True: 
                     reward_source = 'door'
                 else: 
                     raise ValueError("Unkown source")
-                
-                
-                gc.add_subgoal_to_queue(obj_type=reward_source)
-
-                
+                # try to add subgoal to subgoal queue (won't add if subgoal already in dict)
+                if not gc.add_subgoal_to_queue(obj_type=reward_source): 
+                    gc.complete_current_subgoal(reward_source, state_variables) 
+                    # if not, the subgoal may have been active, and if so can be completed
             
-            else: 
-                pass
-            # assess reward and state in order to make necessary modifications and computations to GC components 
-            
-            # if positive reward: trigger check for NEW subgoal (limiting assumption: one object of each goal type)
-            
-                # if IN subgoals (and ACTIVE), complete goal and move onto next subgoal 
-                        # how do this? need state var to set init_dist 
-                
-                    # if no next subgoal, do nothing 
-                
-                # elif in subgoal queue, do nothing 
-                
-                # elif not in either, add to subgoal queue
-            
-            # elif no reward: 
-                # use state variables to check progress on active subgoal 
-                # compute progress with state_var 
-                
-                
-            # compute_GC_score() 
-            
-            
-            # compute reward term here 
-            r_gc = 0.0 
-            potential_diff = r_gc - r_gc_prev
+            # compute active goal progress, then compute total GC score
+            gc.compute_active_progress(state_variables)
+            r_gc = gc.compute_GC_score()
+                        
+            potential_diff = gc.gamma * (r_gc - r_gc_prev)
             r_gc_prev = r_gc
 
-            # init to 0 
             reward += potential_diff  # for higher resolution we may want to store both pre and post reward term buffer values 
+            
+            gc.display_GC() # debug purposes
+            """"""
 
 
-            # TODO add gc to agent buffer
             agent.buffer.rewards.append(reward)
             agent.buffer.is_terminals.append(done)
-            agent.buffer.r_gc.append(r_gc)
+            agent.buffer.r_gc.append(r_gc)  # added gc to buffer (maybe pointless?)
 
 
             time_step += 1
@@ -249,8 +227,10 @@ def main(algorithm: str,
 
             if time_step % update_steps == 0: # backprop every #update_steps (def 100)
                 agent.update()
-                """ gc """
-                # TODO if agent_update setting: introduce new subgoals here
+
+                # if set to update when agent does, introduce new subgoals here
+                if gc.update == "with_agent": 
+                    gc.append_queue()
 
             # printing average reward
             if time_step % stats_steps == 0:
