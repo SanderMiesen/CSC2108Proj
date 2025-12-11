@@ -5,3 +5,4 @@ nudge/nudge.egg-info
 *__pycache*
 logs/
 tmp/
+evaluate_results/
