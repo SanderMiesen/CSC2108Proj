@@ -23,13 +23,13 @@ AGENT_TO_TEST = "logic_paper" # "logic_paper" or "ppo_paper" or "ppo_custom"
 STEP_NB = 800001
 CHECKPOINT = op.join("evaluate_results", f"agent_{AGENT_TO_TEST}", "checkpoints", f"step_{STEP_NB}.pth")
 ENV_NAME = "getout"
-DEVICE = "cpu"   # or "cuda:0"
+DEVICE = "cuda:0"   # "cpu" or "cuda:0"
 N_TEST = 50
 TEST_SEED = 9999        # ensures reproducibility
 ENV_KWARGS = {}          # fill if needed (same as during training)
 
 # Hyperparameters MUST match the ones used to TRAIN the agent
-RULES = "getout_human_assisted"
+RULES = "getout_bs_top10"
 LR_ACTOR = 0.001
 LR_CRITIC = 0.0003
 GAMMA = 0.99
@@ -42,7 +42,7 @@ OPTIMIZER = torch.optim.Adam
 # ---------------------------------------------------------
 
 def build_agent(env, agent_to_test):
-    if agent_to_test == "logic_paper":
+    if agent_to_test == "logic_paper" or agent_to_test == "logic_rf10_paper":
         agent = LogicPPO(
             env=env,
             rules=RULES,
@@ -180,6 +180,6 @@ def main(agent_to_test, steps_to_test):
     df.to_csv(op.join(csv_dir, 'evaluation_returns.csv'), index=False)
 
 if __name__ == "__main__":
-    agent_to_test = "ppo_paper" # "logic_paper" or "ppo_paper"
-    steps_to_test = np.arange(1, 800002, 100000)
+    agent_to_test = "logic_rf10_paper" # "logic_paper" or "ppo_paper"
+    steps_to_test = np.arange(1, 500002, 100000)
     main(agent_to_test, steps_to_test)

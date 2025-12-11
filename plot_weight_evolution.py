@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import ast
 
-weights_csv_path = op.join("evaluate_results", f"agent_logic_paper", "weights.csv")
-plot_save_path = op.join("evaluate_results", f"agent_logic_paper", "weight_evolution.png")
+weights_csv_path = op.join("evaluate_results", f"agent_logic_rf10_paper", "weights.csv")
+plot_save_path = op.join("evaluate_results", f"agent_logic_rf10_paper", "weight_evolution.png")
 
 # Load the CSV file containing evaluation returns
 def load_evaluation_data(path):
@@ -65,7 +65,7 @@ def plot_initial_weights(weights_csv_path: str):
     weights_array = np.vstack(expanded_groups)   # shape: (num_cells*5, 5)
 
     num_groups = weights_array.shape[0]
-    x = np.arange(1, 6)
+    x = np.arange(1, 51)
 
     plt.figure(figsize=(15, 10))
 
@@ -78,7 +78,7 @@ def plot_initial_weights(weights_csv_path: str):
         plt.xticks(x)
 
     plt.tight_layout()
-    initial_plot_path = op.join("evaluate_results", "agent_logic_paper", "initial_weights.png")
+    initial_plot_path = op.join("evaluate_results", "agent_logic_rf10_paper", "initial_weights.png")
     plt.savefig(initial_plot_path)
     plt.close()
 
@@ -101,12 +101,13 @@ def plot_final_weights(weights_csv_path: str):
     weights_array = np.vstack(expanded_groups)   # shape: (num_cells*5, 5)
 
     num_groups = weights_array.shape[0]
-    x = np.arange(1, 6)
+    x = np.arange(1, 51)
 
     plt.figure(figsize=(15, 10))
 
     for i in range(num_groups):
         plt.subplot(2, 3, i + 1)
+        print(weights_array[i])
         plt.bar(x, weights_array[i])
         plt.title(f'final Weights Group {i + 1}')
         plt.xlabel('Weight Index')
@@ -114,7 +115,7 @@ def plot_final_weights(weights_csv_path: str):
         plt.xticks(x)
 
     plt.tight_layout()
-    initial_plot_path = op.join("evaluate_results", "agent_logic_paper", "final_weights.png")
+    initial_plot_path = op.join("evaluate_results", "agent_logic_rf10_paper", "final_weights.png")
     plt.savefig(initial_plot_path)
     plt.close()
 
