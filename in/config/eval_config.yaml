@@ -1,0 +1,14 @@
+# This file contains configuration settings for running evaluation processes.
+# It specifies parameters such as evaluation metrics, dataset paths, and other relevant options.
+
+agent_to_test: logic_rf10_paper # should be the name of an agent saved in the "evaluate_results/" directory
+env_name: getout # environment to evaluate on
+n_episodes: 50 # number of episodes to run for evaluation for each agent
+seed: 42 # random seed for reproducibility
+
+step_to_start: 1 # which training step to start evaluation, should be in "evaluate_results/<agent_to_test>/checkpoints/" 
+step_to_end: 500002 # which training step to stop evaluation, INCLUSIVE if it exists (otherwise it will stop at the last available checkpoint before this)
+step_interval: 100000 # evaluate every 'step_interval' steps, e.g. at steps step_to_start_test, step_to_start_test + step_interval, ...
+
+device: cuda:0 # device to run evaluation on, "cpu" or "cuda:0"
+
