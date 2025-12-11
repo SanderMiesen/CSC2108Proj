@@ -26,6 +26,11 @@ from nudge.utils import exp_decay
 from nudge.utils import print_program
 from argparse import ArgumentParser
 
+### GC ### 
+from env_src.getout.getout.goal_conduciveness import GoalConduciveness
+# debug support # 
+from env_src.getout.getout.state_debug_visual import log_entity_positions
+
 
 
 OUT_PATH = Path("out/")
@@ -51,6 +56,9 @@ def main(algorithm: str,
          recover: bool = False,
          save_steps: int = 250000,
          stats_steps: int = 2000,
+         gc_gamma: float = 1.0,
+         gc_normalize: bool = True,
+         gc_update: str = "with_agent",
          ):
     """
 
@@ -78,6 +86,9 @@ def main(algorithm: str,
             before completion.
         save_steps: Number of steps between each checkpoint save
         stats_steps: Number of steps between each statistics summary timestamp
+        gc_gamma: Discount factor for Goal Conduciveness potential shaping
+        gc_normalize: Whether to normalize Goal Conduciveness score by subgoal count
+        gc_update: When to append new subgoals ('with_agent' or 'episodic')
     """
 
     make_deterministic(seed)
@@ -100,7 +111,7 @@ def main(algorithm: str,
     env = NudgeBaseEnv.from_name(environment, mode=algorithm, **env_kwargs)
 
     now = datetime.now()
-    experiment_dir = OUT_PATH / "runs" / environment / algorithm / now.strftime("%y-%m-%d-%H-%M")
+    experiment_dir = OUT_PATH / "runs" / environment / f"{algorithm}_gc" / now.strftime("%y-%m-%d-%H-%M")
     checkpoint_dir = experiment_dir / "checkpoints"
     image_dir = experiment_dir / "images"
     log_dir = experiment_dir
@@ -153,22 +164,81 @@ def main(algorithm: str,
     # Start the RTPT tracking
     writer = SummaryWriter(str(log_dir))
     rtpt.start()
+    
+    """ Implementation of Goal Conduciveness """
+    gc = GoalConduciveness(gamma=gc_gamma, normalize=gc_normalize, update=gc_update)
+    """"""
 
+    visual_state_debug = False  # set True to enable visual state debugging
+    
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
-        state = env.reset()
+        state, state_variables = env.reset()
         ret = 0  # return
         n_episodes += 1
         epsilon = epsilon_fn(i_episode)
+        
+        """ Goal Conduciveness """
+        # at start of each episode, reset GC progress for all subgoals, and activate first subgoal
+        gc.reset_GC_progress(state_variables)
+        r_gc_prev = 0.0
 
+        # if episodic update, introduce new subgoals here
+        if gc.update == "episodic": 
+            gc.append_queue()
+        """"""
+            
         # Play episode
         for t in range(max_ep_len):
             action = agent.select_action(state, epsilon=epsilon)
 
-            state, reward, done = env.step(action)
+            state, state_variables, reward, done = env.step(action)
+            base_reward = reward
+            
+            """ Goal Conduciveness """
+            # if reward obtained, we need to check whether a new reward source has been found (ie a new subgoal)
+            # ...or whether a current active subgoal has been completed
+            if reward > 0:             
+                # ugly but functional way to check for player collisions (ie determine source of reward)
+                reward_sources = env.env.level.entities[0].collisions  # (key=0, door=1, enemy=2)
+                if reward_sources[0] == True:
+                    reward_source = 'key'
+                elif reward_sources[1] == True: 
+                    reward_source = 'door'
+                else: 
+                    raise ValueError("Unkown source")
+                # try to add subgoal to subgoal queue (won't add if subgoal already in dict)
+                if not gc.add_subgoal_to_queue(obj_type=reward_source): 
+                    gc.complete_current_subgoal(reward_source, state_variables) 
+                    # if not, the subgoal may have been active, and if so can be completed
+            
+            # compute active goal progress, then compute total GC score
+            gc.compute_active_progress(state_variables)
+            r_gc = gc.compute_GC_score()
+                        
+            potential_diff = gc.gamma * (r_gc - r_gc_prev)
+            r_gc_prev = r_gc
+
+            reward += potential_diff  # for higher resolution we may want to store both pre and post reward term buffer values 
+            
+            gc.display_GC() # debug purposes
+            if visual_state_debug:
+                log_entity_positions(
+                    env,
+                    action,
+                    base_reward,
+                    potential_diff=potential_diff,
+                    r_gc=r_gc,
+                    n_episodes=n_episodes,
+                    step=getattr(env.env, "step_counter", time_step),
+                )
+            """"""
+
 
             agent.buffer.rewards.append(reward)
             agent.buffer.is_terminals.append(done)
+            agent.buffer.r_gc.append(r_gc)  # added gc to buffer (maybe pointless?)
+
 
             time_step += 1
             pbar.update(1)
@@ -177,6 +247,10 @@ def main(algorithm: str,
 
             if time_step % update_steps == 0: # backprop every #update_steps (def 100)
                 agent.update()
+
+                # if set to update when agent does, introduce new subgoals here
+                if gc.update == "with_agent": 
+                    gc.append_queue()
 
             # printing average reward
             if time_step % stats_steps == 0:
@@ -230,6 +304,33 @@ def main(algorithm: str,
             for row in weights_list:
                 dataset.writerow(row)
 
+    # Persist Goal Conduciveness state for reuse with a trained model
+    subgoals_dump = {
+        int(idx): {
+            "goal": sg.goal_obj,
+        }
+        for idx, sg in gc.subgoals.items()
+    }
+    queued_dump = {
+        int(idx): {
+            "goal": sg.goal_obj,
+        }
+        for idx, sg in gc.subgoal_queue.items()
+    }
+    gc_payload = {
+        "goal_conduciveness": {
+            "gamma": gc.gamma,
+            "normalize": gc.normalize,
+            "update": gc.update,
+            "subgoals": subgoals_dump,
+            "queued_subgoals": queued_dump,
+        }
+    }
+    with open(experiment_dir / "goal_conduciveness.yaml", "w") as f:
+        yaml.safe_dump(gc_payload, f)
+
+
+
     end_time = time.time()
     print("Finished training at", datetime.now().strftime("%H:%M"))
     print(f"Total training time: {(end_time - start_time) / 60 :.0f} min")
@@ -244,7 +345,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "default.yaml"
+        config_path = IN_PATH / "config" / "logic_with_Goal_Conduciveness.yaml"
     else:
         config_path = Path(args.config)
 
