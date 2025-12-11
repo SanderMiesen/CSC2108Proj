@@ -113,7 +113,7 @@ class Getout(gym.Env):
         reward = self.level.get_reward()
         self.score += reward
         
-        #### log thingy ### 
+        ### debug environment w/ visualization ### 
         # self.log_entity_positions(action, reward)
 
 

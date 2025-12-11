@@ -49,7 +49,7 @@ class NudgeEnv(NudgeBaseEnv):
         # Get new observation
         obs = self.env.get_obs()
 
-        return self.convert_state(obs)
+        return self.convert_state(obs), obs # modified to also return non-converted state representation
 
     def step(self, action, is_mapped: bool = False):
         """
@@ -58,7 +58,7 @@ class NudgeEnv(NudgeBaseEnv):
         Returns (logic_state, neural_state), reward, done, where done is True if episode has ended (truncated or terminated).
         """
         obs, reward, terminated, truncated, _ = self.env.step(action)
-        return self.convert_state(obs), reward, terminated or truncated
+        return self.convert_state(obs), obs, reward, terminated or truncated   # modified to also return non-converted state representation
     
     def extract_state(self, observation):
         repr = self.env.level.get_representation()

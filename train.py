@@ -26,6 +26,9 @@ from nudge.utils import exp_decay
 from nudge.utils import print_program
 from argparse import ArgumentParser
 
+### GC ### 
+from env_src.getout.getout.goal_conduciveness import GoalConduciveness
+
 
 
 OUT_PATH = Path("out/")
@@ -153,22 +156,91 @@ def main(algorithm: str,
     # Start the RTPT tracking
     writer = SummaryWriter(str(log_dir))
     rtpt.start()
+    
+    
+    """ Naive Implementation of Goal Conduciveness """
+    gc = GoalConduciveness()
+    
 
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
-        state = env.reset()
+        state, state_variables = env.reset()
         ret = 0  # return
         n_episodes += 1
         epsilon = epsilon_fn(i_episode)
+        
+        """ Goal Conduciveness """
+        # at start of each episode, reset GC progress for all subgoals, and activate first subgoal
+        gc.reset_GC_progress(state_variables)
+        r_gc_prev = 0.0
 
+        # if episodic update, introduce new subgoals here
+        if gc.update == "episodic": 
+            gc.append_queue()
+        """"""
+            
         # Play episode
         for t in range(max_ep_len):
             action = agent.select_action(state, epsilon=epsilon)
 
-            state, reward, done = env.step(action)
+            state, state_variables, reward, done = env.step(action)
+            
+            """ gc """
 
+                
+            
+            if reward > 0:             
+                # ugly but functional way to check for player collisions (ie determine source of reward)
+                reward_sources = env.env.level.entities[0].collisions # key=0, door=1, enemy=2
+                if reward_sources[0] == True:
+                    reward_source = 'key'
+                elif reward_sources[1] == True: 
+                    reward_source = 'door'
+                else: 
+                    raise ValueError("Unkown source")
+                
+                
+                gc.add_subgoal_to_queue(obj_type=reward_source)
+
+                
+            
+            else: 
+                pass
+            # assess reward and state in order to make necessary modifications and computations to GC components 
+            
+            # if positive reward: trigger check for NEW subgoal (limiting assumption: one object of each goal type)
+            
+                # if IN subgoals (and ACTIVE), complete goal and move onto next subgoal 
+                        # how do this? need state var to set init_dist 
+                
+                    # if no next subgoal, do nothing 
+                
+                # elif in subgoal queue, do nothing 
+                
+                # elif not in either, add to subgoal queue
+            
+            # elif no reward: 
+                # use state variables to check progress on active subgoal 
+                # compute progress with state_var 
+                
+                
+            # compute_GC_score() 
+            
+            
+            # compute reward term here 
+            r_gc = 0.0 
+            potential_diff = r_gc - r_gc_prev
+            r_gc_prev = r_gc
+
+            # init to 0 
+            reward += potential_diff  # for higher resolution we may want to store both pre and post reward term buffer values 
+
+
+            # TODO add gc to agent buffer
             agent.buffer.rewards.append(reward)
             agent.buffer.is_terminals.append(done)
+            agent.buffer.r_gc.append(r_gc)
+
 
             time_step += 1
             pbar.update(1)
@@ -177,6 +249,8 @@ def main(algorithm: str,
 
             if time_step % update_steps == 0: # backprop every #update_steps (def 100)
                 agent.update()
+                """ gc """
+                # TODO if agent_update setting: introduce new subgoals here
 
             # printing average reward
             if time_step % stats_steps == 0:
