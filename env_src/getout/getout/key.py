@@ -7,7 +7,7 @@ class Key(Entity):
 
     def __init__(self, level, x, y,  resource_loader=None):
         super().__init__(level, EntityID.KEY, x, y)
-
+        self.is_key = True
         self.sprites = self._load_sprites(resource_loader) if resource_loader is not None else None
         self.is_key = True
 

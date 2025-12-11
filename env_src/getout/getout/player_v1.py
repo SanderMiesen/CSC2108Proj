@@ -67,6 +67,7 @@ class Player(Entity):
     def set_action(self, action):
         if type(action) is int:
             self.action = coin_jump_actions_from_unified(action)
+            print(f"Converted action int {action} to actions list {self.action}")
         else:
             self.action = action
 
@@ -82,6 +83,7 @@ class Player(Entity):
         self.ay = 0
         self.use_support = True
 
+        # Convert action to list of action ints
         if type(self.action) is str:
             actions = []
             if "right" in self.action:
@@ -94,9 +96,12 @@ class Player(Entity):
                 actions.append(GetoutActions.MOVE_DOWN.value)
             else:
                 raise ValueError(f"Invalid action string '{self.action}' provided.")
+        elif type(self.action) is not list:
+            actions = [self.action]
         else:
             actions = self.action
-
+        
+        # Apply actions
         if GetoutActions.MOVE_LEFT.value in actions:
             self.ax -= self.move_speed
         if GetoutActions.MOVE_RIGHT.value in actions:
@@ -106,11 +111,10 @@ class Player(Entity):
                 self.ay += self.move_speed
             else:
                 self.ay += self.jump_strength
-        else:
-            if GetoutActions.MOVE_DOWN.value in actions:
-                self.use_support = False
-                if self.floating or self.flying:
-                    self.ay -= self.move_speed
+        if GetoutActions.MOVE_DOWN.value in actions:
+            self.use_support = False
+            if self.floating or self.flying:
+                self.ay -= self.move_speed
 
         # our facing is determined by the direction we are 'trying' to walk
         # not the direction we are actually moving.

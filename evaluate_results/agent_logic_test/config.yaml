@@ -1,0 +1,19 @@
+algorithm: logic
+device: cpu
+env_kwargs: {}
+environment: getout
+epochs: 20
+eps_clip: 0.2
+epsilon_fn: !!python/name:nudge.utils.exp_decay ''
+gamma: 0.99
+lr_actor: 0.001
+lr_critic: 0.0003
+max_ep_len: 500
+optimizer: !!python/name:torch.optim.adam.Adam ''
+recover: false
+rules: getout_human_assisted
+save_steps: 10000
+seed: 0
+stats_steps: 50000
+total_steps: 2000
+update_steps: 1000

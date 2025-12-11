@@ -27,7 +27,7 @@ class NudgeEnv(NudgeBaseEnv):
     }
     pred_names: Sequence
 
-    def __init__(self, mode: str, plusplus=False, noise=False):
+    def __init__(self, mode: str, plusplus=False, noise=False, seed=np.random.randint(0, 10000)):
         super().__init__(mode)
         self.plusplus = plusplus
         self.noise = noise
@@ -35,16 +35,16 @@ class NudgeEnv(NudgeBaseEnv):
                  entry_point="env_src.getout.getout.getout:Getout")
         getout_env = gymnasium.make("getout").unwrapped 
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
-        level_generator.generate(getout_env, seed=np.random.randint(0, 10000))
+        level_generator.generate(getout_env, seed=seed)
         getout_env.render()
         self.env = getout_env
 
-    def reset(self):
+    def reset(self, seed=np.random.randint(0, 10000)):
         # Call reset of the getout env
         _, _ = self.env.reset()
         # Regenerate a new level
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
-        level_generator.generate(self.env, seed=np.random.randint(0, 10000))
+        level_generator.generate(self.env, seed)
         self.env.render()
         # Get new observation
         obs = self.env.get_obs()
@@ -101,7 +101,7 @@ class NudgeEnv(NudgeBaseEnv):
             elif key == 'door':
                 logic_state[2][2] = 1
                 logic_state[2][-2:] = value
-            elif key == 'enemy':
+            elif key in ['enemy','ground_enemy']:
                 logic_state[3][3] = 1
                 logic_state[3][-2:] = value
             elif key == 'enemy2':
