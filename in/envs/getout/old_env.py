@@ -15,13 +15,11 @@ from nudge.env import NudgeBaseEnv
 sys.path.append(op.abspath(op.join(op.dirname(__file__), "..", "..", "..", "env_src")))
 from getout.getout.paramLevelGenerator import ParameterizedLevelGenerator
 
-register(id="getout", entry_point="env_src.getout.getout.getout:Getout")
-
 
 class NudgeEnv(NudgeBaseEnv):
     name = "getout"
     pred2action = {
-        # 'stay': 0,
+        'stay': 0,
         'idle': 0,
         'left': 1,
         'right': 2,
@@ -29,27 +27,29 @@ class NudgeEnv(NudgeBaseEnv):
     }
     pred_names: Sequence
 
-    def __init__(self, mode: str, plusplus=False, noise=False, seed=np.random.randint(0, 10000), render=False):
+    def __init__(self, mode: str, plusplus=False, noise=False):
         super().__init__(mode)
         self.plusplus = plusplus
         self.noise = noise
-        getout_env = gymnasium.make("getout", render=render).unwrapped 
+        register(id="getout",
+                 entry_point="env_src.getout.getout.getout:Getout")
+        getout_env = gymnasium.make("getout").unwrapped 
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
-        level_generator.generate(getout_env, seed=seed)
+        level_generator.generate(getout_env, seed=np.random.randint(0, 10000))
         getout_env.render()
         self.env = getout_env
 
-    def reset(self, seed=np.random.randint(0, 10000)):
+    def reset(self):
         # Call reset of the getout env
         _, _ = self.env.reset()
         # Regenerate a new level
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
-        level_generator.generate(self.env, seed)
+        level_generator.generate(self.env, seed=np.random.randint(0, 10000))
         self.env.render()
         # Get new observation
         obs = self.env.get_obs()
 
-        return self.convert_state(obs), obs # modified to also return non-converted state representation
+        return self.convert_state(obs)
 
     def step(self, action, is_mapped: bool = False):
         """
@@ -58,7 +58,7 @@ class NudgeEnv(NudgeBaseEnv):
         Returns (logic_state, neural_state), reward, done, where done is True if episode has ended (truncated or terminated).
         """
         obs, reward, terminated, truncated, _ = self.env.step(action)
-        return self.convert_state(obs), obs, reward, terminated or truncated   # modified to also return non-converted state representation
+        return self.convert_state(obs), reward, terminated or truncated
     
     def extract_state(self, observation):
         repr = self.env.level.get_representation()
@@ -101,13 +101,13 @@ class NudgeEnv(NudgeBaseEnv):
             elif key == 'door':
                 logic_state[2][2] = 1
                 logic_state[2][-2:] = value
-            elif key in ['enemy','ground_enemy']:
+            elif key == 'ground_enemy':
                 logic_state[3][3] = 1
                 logic_state[3][-2:] = value
-            elif key == 'enemy2':
+            elif key == 'ground_enemy2':
                 logic_state[4][3] = 1
                 logic_state[4][-2:] = value
-            elif key == 'enemy3':
+            elif key == 'ground_enemy3':
                 logic_state[5][3] = 1
                 logic_state[5][-2:] = value
             elif key == 'buzzsaw1':

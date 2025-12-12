@@ -20,12 +20,12 @@ class ActorCritic(nn.Module):
 
         mlp_module_path = f"in/envs/{self.env.name}/mlp.py"
         module = load_module(mlp_module_path)
-        self.actor = module.MLP(has_softmax=True)
+        self.actor = module.MLP(has_softmax=True, out_size=self.env.n_actions())
         self.critic = module.MLP(has_softmax=False, out_size=1)
 
         self.n_actions = self.env.n_actions()
         self.uniform = Categorical(
-            torch.tensor([1.0 / self.n_actions for _ in range(3)], device=device))
+            torch.tensor([1.0 / self.n_actions for _ in range(self.env.n_actions())], device=device))
 
     def forward(self):
         raise NotImplementedError

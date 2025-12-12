@@ -59,7 +59,6 @@ class Getout(gym.Env):
         # this is useful when recording human run-throughs to avoid
         self.start_on_first_action = start_on_first_action
         self.has_started = not start_on_first_action
-
         self.step_counter = 0
 
     def clear(self):
@@ -119,13 +118,15 @@ class Getout(gym.Env):
 
         return self.get_obs(), reward, terminated, truncated, self.get_info()
 
-    def render(self):
+    def render(self, mode="human"):
         if self.camera is not None:
             self.camera.start_render()
             self.level.render(self.camera, self.step_counter)
-            self.camera.end_render()
+            frame = self.camera.end_render(mode=mode)
 
             self.hud.render(self.camera, step=self.step_counter if self.show_step_counter else None)
+            if mode == "rgb_array":
+                return frame
 
     def get_score(self):
         return self.score
