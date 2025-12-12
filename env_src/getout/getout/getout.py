@@ -16,7 +16,7 @@ from .entityEncoding import EntityID
 
 class Getout(gym.Env):
 
-    def __init__(self, render=True, resource_path=None, start_on_first_action=False, width=50, seed=None):
+    def __init__(self, render=False, resource_path=None, start_on_first_action=False, width=50, seed=None):
         # self.unwrapped = self 
         # 4 actions: jump, left, right, reset
         self.action_space = Discrete(4)

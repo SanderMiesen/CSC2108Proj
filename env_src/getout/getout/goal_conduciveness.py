@@ -103,9 +103,15 @@ class GoalConduciveness():
     def compute_active_progress(self, state_dict): 
         goal_num, current_goal = self.get_active_subgoal()
         if current_goal:
-            assert current_goal.goal_obj in state_dict
-            curr_dist = dist(state_dict['player'][0], state_dict[current_goal.goal_obj][0])
-            current_goal.compute_progress(curr_dist)
+            if current_goal.goal_obj in state_dict:
+                curr_dist = dist(state_dict['player'][0], state_dict[current_goal.goal_obj][0])
+                current_goal.compute_progress(curr_dist)
+            else:
+                current_goal.complete_subgoal()
+                # handle occasional strange behaviour, where obj somehow is 'taken' (disappears from env vars)
+                # before subgoal is marked as completed 
+                
+                # raise ValueError(f"Goal object '{current_goal.goal_obj}' not found in state_dict. Available keys: {list(state_dict.keys())}")
         
     
     def complete_current_subgoal(self, obj_type, state_dict): 

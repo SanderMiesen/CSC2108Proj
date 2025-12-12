@@ -181,7 +181,7 @@ def main(algorithm: str,
     # this could be included as experiment, i.e. training with pre-loaded goal-conduciveness appraisal
     """"""
 
-    visual_state_debug = True  # set True to enable visual state debugging
+    visual_state_debug = False  # set True to enable visual state debugging
     
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "PPO_with_Goal_Conduciveness.yaml"
+        config_path = IN_PATH / "config" / "logic_with_Goal_Conduciveness.yaml"
     else:
         config_path = Path(args.config)
 
