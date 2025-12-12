@@ -21,7 +21,7 @@ register(id="getout", entry_point="env_src.getout.getout.getout:Getout")
 class NudgeEnv(NudgeBaseEnv):
     name = "getout"
     pred2action = {
-        'stay': 0,
+        # 'stay': 0,
         'idle': 0,
         'left': 1,
         'right': 2,
