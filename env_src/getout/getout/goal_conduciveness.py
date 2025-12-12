@@ -67,7 +67,25 @@ class GoalConduciveness():
     
     # load GC metric from previously trained agent 
     def load_GC(self, gc_info): 
-        pass
+        if gc_info and "goal_conduciveness" in gc_info:
+            gc_data = gc_info["goal_conduciveness"]
+            self.gamma = gc_data.get("gamma", self.gamma)
+            self.normalize = gc_data.get("normalize", self.normalize)
+            self.update = gc_data.get("update", self.update)
+            
+            # Load subgoals
+            for idx, goal_data in gc_data.get("subgoals", {}).items():
+                subgoal = SubGoal(obj_type=goal_data["goal"], active=False)
+                self.subgoals[int(idx)] = subgoal
+            
+            # Load queued subgoals
+            for idx, goal_data in gc_data.get("queued_subgoals", {}).items():
+                subgoal = SubGoal(obj_type=goal_data["goal"], active=False)
+                self.subgoal_queue[int(idx)] = subgoal
+            
+            # Update num_goals to reflect loaded subgoals
+            if self.subgoals or self.subgoal_queue:
+                self.num_goals = len(self.subgoals.keys()) + len(self.subgoal_queue.keys()) + 1
     
     
     def get_active_subgoal(self): 
@@ -165,8 +183,32 @@ class GoalConduciveness():
         output += f"Total Goal Progress:  {self.GC_score}"
         return output
         
+    def return_GC_info(self): 
+        subgoals_dump = {
+            int(idx): {
+                "goal": sg.goal_obj,
+            }
+            for idx, sg in self.subgoals.items()
+        }
+        queued_dump = {
+            int(idx): {
+                "goal": sg.goal_obj,
+            }
+            for idx, sg in self.subgoal_queue.items()
+        }
+        gc_payload = {
+            "goal_conduciveness": {
+                "gamma": self.gamma,
+                "normalize": self.normalize,
+                "update": self.update,
+                "subgoals": subgoals_dump,
+                "queued_subgoals": queued_dump,
+            }
+        }
+        return gc_payload
+    
     # def compute_potential_difference(self): 
-    #     pass
+    #     computed outside class
 
 # helper function to calculate horizontal distance between objects
 def dist(obj1_x, obj2_x):

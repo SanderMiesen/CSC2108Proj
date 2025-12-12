@@ -111,7 +111,9 @@ def main(algorithm: str,
     env = NudgeBaseEnv.from_name(environment, mode=algorithm, **env_kwargs)
 
     now = datetime.now()
-    experiment_dir = OUT_PATH / "runs" / environment / f"{algorithm}_gc" / now.strftime("%y-%m-%d-%H-%M")
+    dt = now.strftime('%y-%m-%d-%H-%M')
+    gc_data = f"steps_{total_steps}_gamma{gc_gamma}_{'norm' if gc_normalize else 'denorm'}_{gc_update}"
+    experiment_dir = OUT_PATH / "runs" / environment / f"{algorithm}_gc" / f"{dt}_{gc_data}"
     checkpoint_dir = experiment_dir / "checkpoints"
     image_dir = experiment_dir / "images"
     log_dir = experiment_dir
@@ -168,8 +170,18 @@ def main(algorithm: str,
     """ Implementation of Goal Conduciveness """
     gc = GoalConduciveness(gamma=gc_gamma, normalize=gc_normalize, update=gc_update)
     """"""
+    
+    """ TEST Loading Trained GC Info """
+    # gc_path = experiment_dir / "goal_conduciveness.yaml"
+    # gc_path = IN_PATH / "config" / "GC_dummy.yaml"
+    # if gc_path.exists():
+    #     with open(gc_path, "r") as f:
+    #         gc_payload = yaml.safe_load(f)
+    #     gc.load_GC(gc_payload)
+    # this could be included as experiment, i.e. training with pre-loaded goal-conduciveness appraisal
+    """"""
 
-    visual_state_debug = False  # set True to enable visual state debugging
+    visual_state_debug = True  # set True to enable visual state debugging
     
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
@@ -180,8 +192,9 @@ def main(algorithm: str,
         
         """ Goal Conduciveness """
         # at start of each episode, reset GC progress for all subgoals, and activate first subgoal
-        gc.reset_GC_progress(state_variables)
+        r_gc = 0.0
         r_gc_prev = 0.0
+        gc.reset_GC_progress(state_variables)
 
         # if episodic update, introduce new subgoals here
         if gc.update == "episodic": 
@@ -286,6 +299,7 @@ def main(algorithm: str,
         writer.add_scalar('ReturnPerStep', ret, time_step)
         writer.add_scalar('Epsilon', epsilon, i_episode)
         writer.add_scalar('EpisodeLength', t + 1, i_episode)
+        writer.add_scalar('GoalConduciveness/score', r_gc, time_step)
 
     env.close()
     pbar.close()
@@ -305,35 +319,16 @@ def main(algorithm: str,
                 dataset.writerow(row)
 
     # Persist Goal Conduciveness state for reuse with a trained model
-    subgoals_dump = {
-        int(idx): {
-            "goal": sg.goal_obj,
-        }
-        for idx, sg in gc.subgoals.items()
-    }
-    queued_dump = {
-        int(idx): {
-            "goal": sg.goal_obj,
-        }
-        for idx, sg in gc.subgoal_queue.items()
-    }
-    gc_payload = {
-        "goal_conduciveness": {
-            "gamma": gc.gamma,
-            "normalize": gc.normalize,
-            "update": gc.update,
-            "subgoals": subgoals_dump,
-            "queued_subgoals": queued_dump,
-        }
-    }
+    gc_payload = gc.return_GC_info()
     with open(experiment_dir / "goal_conduciveness.yaml", "w") as f:
         yaml.safe_dump(gc_payload, f)
-
 
 
     end_time = time.time()
     print("Finished training at", datetime.now().strftime("%H:%M"))
     print(f"Total training time: {(end_time - start_time) / 60 :.0f} min")
+
+
 
 
 if __name__ == "__main__":
@@ -345,7 +340,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "logic_with_Goal_Conduciveness.yaml"
+        config_path = IN_PATH / "config" / "PPO_with_Goal_Conduciveness.yaml"
     else:
         config_path = Path(args.config)
 

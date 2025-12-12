@@ -42,3 +42,4 @@ def log_entity_positions(env, action, reward, potential_diff=None, r_gc=None, n_
     for row in track:
         print(f"[Train] |{''.join(row)}|")
     print(f"[Train] {' '.join(entries)}")
+    print()

@@ -1,0 +1,10 @@
+goal_conduciveness:
+  gamma: 2.0
+  normalize: true
+  queued_subgoals: {}
+  subgoals:
+    1:
+      goal: key
+    2:
+      goal: door
+  update: with_agent
