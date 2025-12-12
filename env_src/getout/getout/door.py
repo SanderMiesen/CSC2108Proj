@@ -9,7 +9,6 @@ class Door(Entity):
 
         self.is_door = True
         self.sprites = self._load_sprites(resource_loader) if resource_loader is not None else None
-        self.is_door = True
 
     def _load_sprites(self, resource_loader):
         sprites = {}
