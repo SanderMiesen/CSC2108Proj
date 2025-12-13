@@ -156,7 +156,7 @@ def main(algorithm: str,
 
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
-        state = env.reset()
+        state = env.reset(seed=n_episodes+np.random.randint(0, 10000))
         ret = 0  # return
         n_episodes += 1
         epsilon = epsilon_fn(i_episode)
