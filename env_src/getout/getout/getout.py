@@ -31,6 +31,7 @@ class Getout(gym.Env):
                            high=np.array([width,16], dtype=float)),
                 "door": Box(low=np.array([0,0], dtype=float), 
                             high=np.array([width,16], dtype=float)),
+                "is_key_collected": Discrete(2),
             }
         )
 
@@ -60,6 +61,8 @@ class Getout(gym.Env):
         self.start_on_first_action = start_on_first_action
         self.has_started = not start_on_first_action
         self.step_counter = 0
+
+        self.init_key_pos = None
 
     def clear(self):
         raise NotImplementedError()
@@ -150,6 +153,7 @@ class Getout(gym.Env):
         self.player = Player(self.level, 2, 2, self.resource_loader)
         self.level.entities.append(self.player)
         self.step_counter = 0
+        self.has_started = not self.start_on_first_action
         return self.get_obs(), self.get_info()
     
     def get_obs(self):
@@ -179,6 +183,12 @@ class Getout(gym.Env):
                 obs["door"] = door_pos
             else:
                 raise ValueError(f"Unknown entity id: {entity._entity_id}")
+        # If key not found, set to (-1,-1)
+        if "key" not in obs:
+            obs["key"] = np.array([-1.0, -1.0], dtype=float)
+            obs["is_key_collected"] = 1
+        else:
+            obs["is_key_collected"] = 0
         # Add current score
         obs["score"] = self.score
         # Add current reward

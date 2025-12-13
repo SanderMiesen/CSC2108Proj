@@ -38,6 +38,9 @@ class NudgeEnv(NudgeBaseEnv):
         level_generator.generate(getout_env, seed=seed)
         getout_env.render()
         self.env = getout_env
+        for entity in self.env.level.entities:
+            if entity.is_key:
+                self.env.init_key_pos = [entity.x, entity.y]
 
     def reset(self, seed=np.random.randint(0, 10000)):
         # Call reset of the getout env
@@ -46,6 +49,9 @@ class NudgeEnv(NudgeBaseEnv):
         level_generator = ParameterizedLevelGenerator(enemy=False, enemies=False, key_door=False) 
         level_generator.generate(self.env, seed)
         self.env.render()
+        for entity in self.env.level.entities:
+            if entity.is_key:
+                self.env.init_key_pos = [entity.x, entity.y]
         # Get new observation
         obs = self.env.get_obs()
 
@@ -126,11 +132,22 @@ class NudgeEnv(NudgeBaseEnv):
 
         return logic_state
 
-    def extract_neural_state(self, observation):
+    def extract_neural_state_init(self, observation):
         model_input = sample_to_model_input((self.extract_state(observation), []))
         model_input = collate([model_input], to_cuda=False, double_to_float=True)
         neural_state = model_input['state']
         neural_state = torch.cat([neural_state['base'], neural_state['entities']], dim=1)
+        # import ipdb; ipdb.set_trace()
+        return neural_state
+    
+    def extract_neural_state(self, observation):
+        neural_state = -1*np.ones((1, 9), dtype=float)
+        neural_state[0,0:2] = observation['player']
+        neural_state[0,2:4] = observation['enemy']
+        neural_state[0,4:6] = observation['key']
+        neural_state[0,6:8] = observation['door']
+        neural_state[0,8] = observation['is_key_collected']
+        # print("Neural state:", neural_state)
         return neural_state
 
     def close(self):

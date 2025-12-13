@@ -84,7 +84,8 @@ class Level:
             "level": self.meta,
             "coins": self.coins_collected,
             "lost": self.lost,
-            "entities": entities
+            "entities": entities,
+            "key_collected": self.key_collected,
         }
         return representation
 
