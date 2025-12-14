@@ -100,7 +100,7 @@ class Getout(gym.Env):
         self.player.set_action(action)
         self.level.step()
         # Render the environment
-        self.render()
+        # self.render() # NOTE: temp for speeding up training
         # If we want to add episode truncation on score <= 0, uncomment this
         """
         if self.score + reward <= 0 and not self.level.terminated:

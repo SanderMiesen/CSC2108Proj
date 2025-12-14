@@ -185,7 +185,8 @@ def main(algorithm: str,
     
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
-        state, state_variables = env.reset()
+        # state, state_variables = env.reset() ### resetting for certainty of no repetitious states
+        state, state_variables = env.reset(seed=n_episodes+np.random.randint(0, 10000))
         ret = 0  # return
         n_episodes += 1
         epsilon = epsilon_fn(i_episode)
@@ -340,7 +341,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "logic_with_Goal_Conduciveness.yaml"
+        config_path = IN_PATH / "config" / "PPO_with_Goal_Conduciveness.yaml"
     else:
         config_path = Path(args.config)
 

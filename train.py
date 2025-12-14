@@ -156,7 +156,8 @@ def main(algorithm: str,
 
     pbar = tqdm(total=total_steps - time_step, file=sys.stdout)
     while time_step < total_steps:
-        state = env.reset()
+        # state, state_variables = env.reset() ### resetting for certainty of no repetitious states
+        state, state_variables = env.reset(seed=n_episodes+np.random.randint(0, 10000))
         ret = 0  # return
         n_episodes += 1
         epsilon = epsilon_fn(i_episode)
@@ -165,7 +166,7 @@ def main(algorithm: str,
         for t in range(max_ep_len):
             action = agent.select_action(state, epsilon=epsilon)
 
-            state, reward, done = env.step(action)
+            state, state_variables, reward, done = env.step(action)
 
             agent.buffer.rewards.append(reward)
             agent.buffer.is_terminals.append(done)
@@ -244,7 +245,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.config is None:
-        config_path = IN_PATH / "config" / "default.yaml"
+        config_path = IN_PATH / "config" / "ppo_5m.yaml"
     else:
         config_path = Path(args.config)
 

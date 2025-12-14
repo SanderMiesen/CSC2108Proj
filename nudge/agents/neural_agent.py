@@ -144,7 +144,7 @@ class NeuralPPO:
 
     def save(self, checkpoint_path, directory: Path, step_list, reward_list):
         torch.save(self.policy_old.state_dict(), checkpoint_path)
-        with open(op.join(directory, "data.pkl"), "wb") as f:
+        with open(os.path.join(directory, "data.pkl"), "wb") as f:
             pickle.dump(step_list, f)
             pickle.dump(reward_list, f)
 
@@ -154,7 +154,7 @@ class NeuralPPO:
         model_file = os.path.join(directory, model_name)
         self.policy_old.load_state_dict(torch.load(model_file, map_location=lambda storage, loc: storage))
         self.policy.load_state_dict(torch.load(model_file, map_location=lambda storage, loc: storage))
-        with open(op.join(directory, "data.pkl"), "rb") as f:
+        with open(os.path.join(directory, "data.pkl"), "rb") as f:
             step_list = pickle.load(f)
             reward_list = pickle.load(f)
         return step_list, reward_list
