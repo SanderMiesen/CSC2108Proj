@@ -31,7 +31,7 @@ class Getout(gym.Env):
                            high=np.array([width,16], dtype=float)),
                 "door": Box(low=np.array([0,0], dtype=float), 
                             high=np.array([width,16], dtype=float)),
-                "is_key_collected": Discrete(2),
+                # "is_key_collected": Discrete(2),
             }
         )
 

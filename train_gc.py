@@ -112,7 +112,7 @@ def main(algorithm: str,
 
     now = datetime.now()
     dt = now.strftime('%y-%m-%d-%H-%M')
-    gc_data = f"steps_{total_steps}_gamma{gc_gamma}_{'norm' if gc_normalize else 'denorm'}_{gc_update}"
+    gc_data = f"D60_steps_{total_steps}_gamma{gc_gamma}_{'norm' if gc_normalize else 'denorm'}_{gc_update}"
     experiment_dir = OUT_PATH / "runs" / environment / f"{algorithm}_gc" / f"{dt}_{gc_data}"
     checkpoint_dir = experiment_dir / "checkpoints"
     image_dir = experiment_dir / "images"

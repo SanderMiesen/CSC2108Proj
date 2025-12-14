@@ -3,7 +3,7 @@ algorithm: ppo # default : none, set to "ppo" for neural agent or "logic" for lo
 environment: getout # default : none
 rules: getout_bs_top10 #getout_bs_top10 #getout_human_assisted getout_no_search_50 # default : "default"
 device: cpu #cuda:0 # default : "cpu"
-total_steps: 5000000 # 10000 # default : 800000
+total_steps: 2000000 # 10000 # default : 800000
 max_ep_len: 500 # default : 500
 update_steps: 1000 # default : none
 epochs: 20 # default : 20
@@ -18,6 +18,6 @@ save_steps: 100000 # default : 250000
 stats_steps: 10000 # default : 2000
 
 # GC params
-gc_gamma: 14.0
+gc_gamma: 12.0
 gc_normalize: True
 gc_update: 'with_agent'
