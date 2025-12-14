@@ -98,6 +98,7 @@ def evaluate(agent, step_nb, eval_config, train_config):
     Evaluate the agent at several checkpoint over N_TEST deterministic environments.
     """
     returns = []
+    episode_completions = []
 
     # Fix environment generation for reproducibility
     rng = np.random.default_rng(eval_config["seed"])
@@ -120,6 +121,10 @@ def evaluate(agent, step_nb, eval_config, train_config):
             if eval_config["render"]:
                 frame = env.env.render(mode="rgb_array")  # for potential future video recording
                 ep_frames.append(frame)
+        if not env.env.level.lost and total_reward > 0:
+            episode_completions.append(1)
+        else:
+            episode_completions.append(0)
         # Save episode return and end the env
         returns.append(total_reward)
         env.close()
@@ -131,19 +136,19 @@ def evaluate(agent, step_nb, eval_config, train_config):
             with imageio.get_writer(video_path, fps=30) as writer:
                 for f in ep_frames:
                     writer.append_data(f)
-
-            
     
     median_return = np.median(returns)
     avg_return = np.mean(returns)
     std_return = np.std(returns)
+    episode_completion_rate = np.mean(episode_completions) * 100
 
     print(f"\nEvaluation complete over {eval_config["n_episodes"]} fixed test envs.")
     print(f"Median return:  {median_return:.3f}")
     print(f"Average return: {avg_return:.3f}")
     print(f"Std return:     {std_return:.3f}")
+    print(f"Completion rate: {episode_completion_rate:.2f}%\n")
 
-    return returns
+    return returns, episode_completions
 
 
 # ---------------------------------------------------------
@@ -159,14 +164,16 @@ def main(eval_config, train_config):
 
     steps_to_test = np.arange(eval_config["step_to_start"], eval_config["step_to_end"]+1, eval_config["step_interval"])
     all_returns = {}
+    all_completions = {}
     for step_nb in steps_to_test:
         print("Loading checkpoint…")
         checkpoint_path = op.join("evaluate_results", f"agent_{eval_config["agent_to_test"]}", "checkpoints", f"step_{step_nb}.pth")
         load_checkpoint(agent, checkpoint_path, eval_config)
 
         print("Running evaluation…")
-        returns = evaluate(agent, step_nb, eval_config, train_config)
+        returns, completions = evaluate(agent, step_nb, eval_config, train_config)
         all_returns[step_nb] = returns
+        all_completions[step_nb] = completions
         # Plot returns distribution
         plt.figure(figsize=(8, 5))
         plt.hist(returns, bins=15, color='skyblue', edgecolor='black')
@@ -178,9 +185,22 @@ def main(eval_config, train_config):
         Path(plot_dir).mkdir(parents=True, exist_ok=True)
         plt.savefig(op.join(plot_dir, f'returns_distribution_step_{step_nb}.png'))
         plt.close()
+        # Plot completion distribution
+        plt.figure(figsize=(8, 5))
+        plt.hist(completions, bins=2, color='lightgreen', edgecolor='black', align='left', rwidth=0.4)
+        plt.xticks([0, 0.5], ['Not Completed', 'Completed'])
+        plt.title(f'Completion Distribution over {eval_config["n_episodes"]} Test Environments\n(Agent: {eval_config["agent_to_test"]}, Step: {step_nb})')
+        plt.xlabel('Completion Status')
+        plt.ylabel('Frequency')
+        plt.grid(axis='y', alpha=0.75)
+        plt.savefig(op.join(plot_dir, f'completion_distribution_step_{step_nb}.png'))
+        plt.close()
     
     # Save the returns in a CSV file
-    df = pd.DataFrame(all_returns)
+    df = pd.DataFrame({
+        "returns": all_returns,
+        "completions": all_completions
+    })
     csv_dir = op.join("evaluate_results", f"agent_{eval_config["agent_to_test"]}") 
     Path(csv_dir).mkdir(parents=True, exist_ok=True)
     df.to_csv(op.join(csv_dir, 'evaluation_returns.csv'), index=False)
