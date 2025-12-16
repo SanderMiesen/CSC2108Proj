@@ -112,7 +112,8 @@ def evaluate(agent, step_nb, eval_config, train_config):
         done = False
         total_reward = 0
         ep_frames = []
-        while not done:
+        ep_step_nb = 0  # to save videos with correct step nb
+        while not done and ep_step_nb < train_config["max_ep_len"]:
             # Step env
             action_pred = agent.select_action(state, epsilon=0.0)
             state, reward, done = env.step(action_pred) 
@@ -121,6 +122,7 @@ def evaluate(agent, step_nb, eval_config, train_config):
             if eval_config["render"]:
                 frame = env.env.render(mode="rgb_array")  # for potential future video recording
                 ep_frames.append(frame)
+            ep_step_nb += 1
         if not env.env.level.lost and total_reward > 0:
             episode_completions.append(1)
         else:

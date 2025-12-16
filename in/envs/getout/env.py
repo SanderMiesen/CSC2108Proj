@@ -68,6 +68,7 @@ class NudgeEnv(NudgeBaseEnv):
     
     def extract_state(self, observation):
         repr = self.env.level.get_representation()
+        # import ipdb; ipdb.set_trace()
         repr["reward"] = observation["reward"]
         repr["score"] = observation["score"]
 
@@ -78,7 +79,7 @@ class NudgeEnv(NudgeBaseEnv):
                     entity[i] = v.value
                 if isinstance(v, bool):
                     entity[i] = int(v)
-
+        # import ipdb; ipdb.set_trace()
         return repr
 
     def extract_logic_state(self, observation):

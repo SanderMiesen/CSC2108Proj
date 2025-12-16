@@ -41,6 +41,8 @@ class Getout(gym.Env):
         #     resource_path = pathlib.Path(__file__).joinpath('../../assets/kenney/')
         base = pathlib.Path(__file__).resolve().parent.parent  # env_src/getout
         resource_path = base / 'assets' / 'kenney'
+        if render:
+            print("render")
         self.resource_loader = ResourceLoader(path=resource_path, sprite_size=self.zoom,
                                               no_loading=not render) if render else None
 

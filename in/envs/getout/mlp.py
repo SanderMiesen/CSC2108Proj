@@ -24,6 +24,12 @@ class MLP(torch.nn.Module):
             torch.nn.Linear(64, out_size, dtype=torch.float32, device=self.device),
         ]
 
+        # modules = [
+        #     torch.nn.Linear(self.num_in_features, 40, dtype=torch.float32, device=self.device),
+        #     torch.nn.ReLU(inplace=True),
+        #     torch.nn.Linear(40, out_size, dtype=torch.float32, device=self.device),
+        # ]
+
         if has_softmax:
             modules.append(torch.nn.Softmax(dim=-1))
 
