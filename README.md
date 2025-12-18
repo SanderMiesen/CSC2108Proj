@@ -1,3 +1,6 @@
+## Notes for reviewers: 
+Goal Conduciveness functions and training pipeline are in the goal_conduciveness branch (env_src/getout/getout/goal_conduciveness.py and train_gc.py respectively)
+
 # NUDGE
 
 This is the implementation of **Neurally gUided Differentiable loGic policiEs (NUDGE)**, a framework for logic RL agents based on differentiable forward reasoning with first-order logic (FOL).
